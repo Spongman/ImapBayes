@@ -1,0 +1,13 @@
+DELETE tblTokens
+WHERE id not IN (
+	SELECT idToken
+	FROM tblTokenCounts
+)
+
+DBCC DBREINDEX(tblTokens, '', 100)
+
+DBCC DBREINDEX(tblTokenCounts, '', 90)
+
+DBCC DBREINDEX(tblMessages, '', 100)
+
+DBCC SHRINKDATABASE(ImapBayes)
