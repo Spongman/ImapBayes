@@ -1,22 +1,23 @@
 CREATE TABLE tblAccounts (
 	id INT IDENTITY PRIMARY KEY,
-	strName NVARCHAR(50) NOT NULL,
-	strHost VARCHAR(50) NOT NULL,
-	strUser VARCHAR(50) NOT NULL,
-	strPass VARCHAR(50) NOT NULL,
+	strName NVARCHAR(100) NOT NULL,
+	strHost VARCHAR(100) NOT NULL,
+	strUser VARCHAR(100) NOT NULL,
+	strPass VARCHAR(100) NOT NULL,
 	nPort INT NOT NULL,
 	fUseSsl BIT NOT NULL,
 	fActive BIT NOT NULL,
 	fTraining BIT NOT NULL,
-	strInboxFolder VARCHAR(100) NOT NULL,
-	strSpamFolder VARCHAR(100) NOT NULL,
-	strUnsureFolder VARCHAR(100) NOT NULL,
+	strInbox VARCHAR(100) NOT NULL,
+	strSpam VARCHAR(100) NOT NULL,
+	strUnsure VARCHAR(100) NOT NULL,
 	cSpam INT NOT NULL,
 	cHam INT NOT NULL,
 	nSpamCutoff REAL NOT NULL,
 	nHamCutoff REAL NOT NULL
 )
 
+/*
 CREATE TABLE tblTrainingFolders (
 	id INT IDENTITY PRIMARY KEY,
 	idAccount INT NOT NULL,
@@ -24,6 +25,7 @@ CREATE TABLE tblTrainingFolders (
 	fSpam BIT NULL,
 	fRecursive BIT NOT NULL
 )
+*/
 
 CREATE TABLE tblMessages (
 	id INT IDENTITY PRIMARY KEY,
@@ -47,20 +49,14 @@ CREATE UNIQUE INDEX ixTokensValue
 ON tblTokens (value ASC)
 
 
-
 /*
 CREATE TABLE tblMessageTokens (
 	idMessage INT NOT NULL,
 	idToken INT NOT NULL,
 	--cOccurrences INT NOT NULL,
-	PRIMARY KEY (idMessage, idToken)
-)
-
-CREATE NONCLUSTERED INDEX IX_idMessage
-ON tblMessageTokens (idToken)
---INCLUDE (idMessage)
+	CONSTRAINT PK_tblMessageTokens PRIMARY KEY CLUSTERED (idMessage, idToken)
+) WITHOUT ROWID
 */
-
 
 
 CREATE TABLE tblTokenCounts (
@@ -69,4 +65,4 @@ CREATE TABLE tblTokenCounts (
 	cSpam int NOT NULL,
 	cHam int NOT NULL,
 	CONSTRAINT PK_tblTokenCounts PRIMARY KEY CLUSTERED (idAccount, idToken)
-)
+) WITHOUT ROWID

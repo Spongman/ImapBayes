@@ -60,10 +60,7 @@ namespace AE.Net.Mail
 			return string.Format("xm{0:000} ", _tag);
 		}
 
-		public virtual bool Supports(string command)
-		{
-			return (_capability ?? Capability()).Contains(command, StringComparer.OrdinalIgnoreCase);
-		}
+		public virtual bool Supports(string command) => (_capability ?? Capability()).Contains(command, StringComparer.OrdinalIgnoreCase);
 
 		public delegate void ExistsHandler(ImapClient sender, int count);
 		public virtual event ExistsHandler HandleExists;
@@ -442,7 +439,7 @@ namespace AE.Net.Mail
 			return AddFlags(new[] { Flags.Seen, Flags.Deleted }, msg);
 		}
 
-		Regex _reCopyUid = new Regex("COPYUID ([0-9]+) ([0-9,:]+) ([0-9,:]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+		readonly Regex _reCopyUid = new Regex("COPYUID ([0-9]+) ([0-9,:]+) ([0-9,:]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
 		public virtual void MoveMessage(AE.Net.Mail.MailMessage msg, string folderName)
 		{
@@ -464,9 +461,10 @@ namespace AE.Net.Mail
 						{
 							if (long.TryParse(match.Groups[3].Value, out long uidNew))
 							{
-								var msgNew = new MailMessage();
-								msgNew.Uid = uidNew;
-
+								var msgNew = new MailMessage()
+								{
+									Uid = uidNew
+								};
 								var mailbox = _selectedMailbox;
 								this.SelectMailbox(folderName);
 								this.AddFlags(msg.Flags, msgNew);
@@ -487,30 +485,15 @@ namespace AE.Net.Mail
 				SelectMailbox("INBOX");
 		}
 
-		public virtual MailMessage GetMessage(long uid, bool headersonly = false)
-		{
-			return GetMessage(uid, headersonly, true);
-		}
+		public virtual MailMessage GetMessage(long uid, bool headersonly = false) => GetMessage(uid, headersonly, true);
 
-		public virtual MailMessage GetMessage(int index, bool headersonly = false)
-		{
-			return GetMessage(index, headersonly, true);
-		}
+		public virtual MailMessage GetMessage(int index, bool headersonly = false) => GetMessage(index, headersonly, true);
 
-		public virtual MailMessage GetMessage(int index, bool headersonly, bool setseen)
-		{
-			return GetMessages(index, index, headersonly, setseen).FirstOrDefault();
-		}
+		public virtual MailMessage GetMessage(int index, bool headersonly, bool setseen) => GetMessages(index, index, headersonly, setseen).FirstOrDefault();
 
-		public virtual MailMessage GetMessage(long uid, bool headersonly, bool setseen)
-		{
-			return GetMessages(uid, uid, headersonly, setseen).FirstOrDefault();
-		}
+		public virtual MailMessage GetMessage(long uid, bool headersonly, bool setseen) => GetMessages(uid, uid, headersonly, setseen).FirstOrDefault();
 
-		public virtual IEnumerable<MailMessage> GetMessages(long startUID, long endUID, bool headersonly = true, bool setseen = false)
-		{
-			return GetMessages(startUID, endUID, true, headersonly, setseen);
-		}
+		public virtual IEnumerable<MailMessage> GetMessages(long startUID, long endUID, bool headersonly = true, bool setseen = false) => GetMessages(startUID, endUID, true, headersonly, setseen);
 
 		public virtual void DownloadMessage(System.IO.Stream stream, int index, bool setseen)
 		{
@@ -685,7 +668,7 @@ namespace AE.Net.Mail
 		public virtual Quota GetQuota(string mailbox)
 		{
 			if (!Supports("NAMESPACE"))
-				new Exception("This command is not supported by the server!");
+				throw new Exception("This command is not supported by the server!");
 
 			Quota quota = null;
 

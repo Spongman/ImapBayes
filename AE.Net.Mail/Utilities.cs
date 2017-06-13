@@ -410,7 +410,7 @@ namespace AE.Net.Mail
 			var minutes = rxTimeZoneMinutes.Match(value);
 			if (minutes.Groups[2].Value.ToInt() > 60)
 			{ //even if there's no match, the value = 0
-				value = value.Substring(0, minutes.Index) + minutes.Groups[1].Value + "00";
+				return value.Substring(0, minutes.Index) + minutes.Groups[1].Value + "00";
 			}
 			return value;
 		}
@@ -743,7 +743,6 @@ namespace AE.Net.Mail
 
 			return fChanged;
 		}
-
 
 		internal static void Fire<T>(this EventHandler<T> events, object sender, T args) where T : EventArgs
 		{

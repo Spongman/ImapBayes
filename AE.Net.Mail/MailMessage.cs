@@ -76,8 +76,7 @@ foreach (var a in msg.AlternateViews)
 		public virtual DateTime Date { get; private set; }
 		public virtual DateTime InternalDate { get; set; }
 
-
-		HashSet<string> _flags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		readonly HashSet<string> _flags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 		public virtual ICollection<string> Flags => _flags;
 		public virtual int Size { get; internal set; }
 		public virtual string Subject { get; set; }

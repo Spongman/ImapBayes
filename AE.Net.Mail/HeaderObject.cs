@@ -44,7 +44,7 @@ namespace AE.Net.Mail
 					Headers["Content-Type"]["charset"]
 				);
 
-		protected Encoding _defaultEncoding = Encoding.GetEncoding(1252);
+		protected Encoding _defaultEncoding = Encoding.UTF8;// Encoding.GetEncoding(1252);
 		protected Encoding _encoding;
 		public virtual Encoding Encoding
 		{

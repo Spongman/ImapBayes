@@ -32,7 +32,8 @@ namespace AE.Net.Mail
 
 		protected TextClient()
 		{
-			Encoding = System.Text.Encoding.GetEncoding(1252);
+			//Encoding = System.Text.Encoding.GetEncoding(1252);
+			Encoding = System.Text.Encoding.UTF8;
 		}
 
 		internal abstract void OnLogin(string username, string password);
