@@ -64,23 +64,25 @@ namespace ImapBayes.Properties {
         /// <summary>
         ///   Looks up a localized string similar to CREATE TABLE tblAccounts (
         ///	id INT IDENTITY PRIMARY KEY,
-        ///	strName NVARCHAR(50) NOT NULL,
-        ///	strHost VARCHAR(50) NOT NULL,
-        ///	strUser VARCHAR(50) NOT NULL,
-        ///	strPass VARCHAR(50) NOT NULL,
+        ///	strName NVARCHAR(100) NOT NULL,
+        ///	strHost VARCHAR(100) NOT NULL,
+        ///	strUser VARCHAR(100) NOT NULL,
+        ///	strPass VARCHAR(100) NOT NULL,
         ///	nPort INT NOT NULL,
         ///	fUseSsl BIT NOT NULL,
         ///	fActive BIT NOT NULL,
         ///	fTraining BIT NOT NULL,
-        ///	strInboxFolder VARCHAR(100) NOT NULL,
-        ///	strSpamFolder VARCHAR(100) NOT NULL,
-        ///	strUnsureFolder VARCHAR(100) NOT NULL,
+        ///	strInbox VARCHAR(100) NOT NULL,
+        ///	strSpam VARCHAR(100) NOT NULL,
+        ///	strUnsure VARCHAR(100) NOT NULL,
         ///	cSpam INT NOT NULL,
-        ///	cHam INT NOT NULL
+        ///	cHam INT NOT NULL,
+        ///	nSpamCutoff REAL NOT NULL,
+        ///	nHamCutoff REAL NOT NULL
         ///)
         ///
-        ///CREATE TABLE tblTrainingFolders (
-        ///	id INT IDENTITY PRIMARY K [rest of string was truncated]&quot;;.
+        ////*
+        ///CREATE TABLE t [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string DatabaseScript {
             get {
