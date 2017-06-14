@@ -97,7 +97,7 @@ namespace ImapBayes
 						Trace.WriteLine("initializing...");
 
 						//var script = ImapBayes.Properties.Resources.DatabaseScript;
-						var script = DatabaseScript.DatabaseScript;
+						var script = DatabaseScript.Script;
 						switch (DbFactory.GetType().Name)
 						{
 							case "SqliteFactory":

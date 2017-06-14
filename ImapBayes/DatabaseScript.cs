@@ -6,7 +6,7 @@ namespace ImapBayes
 {
     public class DatabaseScript
     {
-		public const string DatabaseScript = @"
+		public const string Script = @"
 CREATE TABLE tblAccounts (
 	id INT IDENTITY PRIMARY KEY,
 	strName NVARCHAR(100) NOT NULL,

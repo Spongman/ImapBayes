@@ -3,3 +3,6 @@
 ################################################################################
 
 /ImapBayes/bin
+/ImapBayes/obj
+/AE.Net.Mail/obj
+/AE.Net.Mail/bin
