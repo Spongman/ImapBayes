@@ -143,7 +143,7 @@ namespace ImapBayes
 				}
 			}
 
-			/*
+#if !DEBUG
 			if (!Debugger.IsAttached)
 			{
 				Trace.WriteLine("starting...");
@@ -152,7 +152,7 @@ namespace ImapBayes
 					ai.Run();
 				}
 			}
-			*/
+#endif
 
 			Trace.WriteLine("type 'quit' to exit");
 
@@ -829,6 +829,7 @@ SELECT " + _scopeIdentity,
 		{
 			var fTraining = _fTraining;
 
+
 			var mbox = imap.SelectMailbox(strFolder);
 			if (mbox == null)
 			{
@@ -861,6 +862,10 @@ SELECT " + _scopeIdentity,
 
 			var rgMessageIds = imap.Search(!SearchCondition.Deleted && searchFlag).ToList();
 			var cMessages = rgMessageIds.Count;
+
+			if (fTraining)
+				Trace.WriteLine($"ProcessFolder: {strFolder}  ({cMessages} found)");
+
 			if (cMessages == 0)
 				return false;
 
@@ -1125,6 +1130,9 @@ SELECT " + _scopeIdentity,
 			{
 				imap.Expunge();
 			}
+
+			if (fTraining)
+				Trace.WriteLine("ProcessFolder DONE");
 
 			return fChanged;
 		}

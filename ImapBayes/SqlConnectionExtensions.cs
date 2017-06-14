@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics;
 //using System.Data.SqlClient;
 using System.Diagnostics.Contracts;
 
@@ -175,7 +176,14 @@ namespace ImapBayes
 		public static void ExecuteNonQuery(this IDbTransaction @this, string strCmd, CommandType type, params IDbDataParameter[] rgParams)
 		{
 			using (IDbCommand cmd = @this.GetCommand(strCmd, type, rgParams))
+			{
+			#if DEBUG
+				Trace.WriteLine(strCmd);
+				foreach (var p in rgParams)
+					Trace.WriteLine($"{p.ParameterName} = ({p.DbType}) {p.Value}");
+			#endif
 				cmd.ExecuteNonQuery();
+			}
 		}
 
 		public static T ExecuteScalar<T>(this IDbTransaction @this, string strCmd, CommandType type, params IDbDataParameter[] rgParams)
