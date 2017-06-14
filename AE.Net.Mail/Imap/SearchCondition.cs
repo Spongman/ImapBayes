@@ -51,7 +51,22 @@ namespace AE.Net.Mail
 			New, Old, Recent, Seen, Unanswered, Undeleted, Undraft, Unflagged, Unseen,
 		}
 
-		internal virtual SearchCondition And(params SearchCondition[] others) => new AndSearchCondition(new[] { this }.Concat(others).ToArray());
+		internal virtual SearchCondition And(params SearchCondition[] others)
+		{
+			var rg = others.Where(o => o != SearchCondition.All).ToList();
+			if (this != SearchCondition.All)
+				rg.Add(this);
+
+			switch (rg.Count)
+			{
+				case 0:
+					return SearchCondition.All;
+				case 1:
+					return rg[0];
+				default:
+					return new AndSearchCondition(rg.ToArray());
+			}
+		}
 
 		internal virtual SearchCondition Not() => new NotSearchCondition(this);
 
