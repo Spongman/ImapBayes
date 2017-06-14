@@ -872,27 +872,30 @@ SELECT " + _scopeIdentity,
 			if (fTraining && fSpamFolder == null)
 				fSpamFolder = false;
 
-			/*
-			var rgNewMessageIds = new List<long>();
-			using (var imapRead = GetImapClient(strFolder))
+			if (fTraining)
 			{
-				foreach (var (start, end) in rgMessageIds.ToRanges(100))
+				var rgNewMessageIds = new List<long>();
+				using (var imapRead = GetImapClient(strFolder))
 				{
-					if (_token.IsCancellationRequested)
-						return false;
-
-					imap.GetMessages(start, end, true, true, false, (MailMessage msg) =>
+					foreach (var (start, end) in rgMessageIds.ToRanges(100))
 					{
-						var mi = MessageInfo.FromMessage(con, AccountId, msg);
-						if (mi == null || mi.IsSpam != fSpamFolder)
-							rgNewMessageIds.Add(msg.Uid);
-					});
-				}
-			}
+						if (_token.IsCancellationRequested)
+							return false;
 
-			if (rgNewMessageIds.Count == 0)
-				return false;
-			*/
+						imap.GetMessages(start, end, true, true, false, (MailMessage msg) =>
+						{
+							var mi = MessageInfo.FromMessage(con, AccountId, msg);
+							if (mi == null || mi.IsSpam != fSpamFolder)
+								rgNewMessageIds.Add(msg.Uid);
+						});
+					}
+				}
+
+				if (rgNewMessageIds.Count == 0)
+					return false;
+
+				rgMessageIds = rgNewMessageIds;
+			}
 
 			var fChanged = false;
 			int iMessage = 0;
