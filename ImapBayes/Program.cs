@@ -23,7 +23,7 @@ using Fizzler.Systems.HtmlAgilityPack;
 using System.Data.Common;
 
 #if SQLITE
-using RowIdType = System.String;//System.Int64;
+using RowIdType = System.Int64;
 #else
 using RowIdType = int;
 #endif
