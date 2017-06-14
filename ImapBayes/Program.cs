@@ -306,7 +306,7 @@ namespace ImapBayes
 							break;
 					}
 
-					Debug.WriteLine("DONE " + strCommand);
+					Trace.WriteLine("DONE " + strCommand);
 				}
 			}
 
@@ -324,11 +324,14 @@ namespace ImapBayes
 
 		static void ExecuteScript(IDbConnection con, string script)
 		{
-			script = Regex.Replace(script, @"/\*(\n|\r|(\*[^/])|[^\*])*\*/", "", RegexOptions.Singleline);
+			script = script.Replace("\r", "");
+			script = Regex.Replace(script, @"/\*(\n|(\*[^/])|[^\*])*\*/", "", RegexOptions.Singleline);
 
-			foreach (var line in script.Split(new[] { "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries))
+			foreach (var line in script.Split(new[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries))
 			{
-				Debug.WriteLine(line);
+				Trace.WriteLine("-----");
+				Trace.WriteLine(line);
+				Trace.WriteLine("-----");
 				using (IDbCommand cmd = con.GetCommand(line, CommandType.Text))
 				{
 					cmd.CommandTimeout = 300;
@@ -758,7 +761,7 @@ SELECT " + _scopeIdentity,
 				}
 				catch (Exception e)
 				{
-					Debug.WriteLine(e);
+					Trace.WriteLine(e);
 				}
 			};
 
