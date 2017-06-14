@@ -23,7 +23,7 @@ using Fizzler.Systems.HtmlAgilityPack;
 using System.Data.Common;
 
 #if SQLITE
-using RowIdType = System.Int64;
+using RowIdType = System.String;//System.Int64;
 #else
 using RowIdType = int;
 #endif
@@ -82,7 +82,7 @@ namespace ImapBayes
 			mdfPath = Path.GetFullPath(mdfPath);
 #endif
 
-			var mapAccountInfos = new Dictionary<int, Account>();
+			var mapAccountInfos = new Dictionary<RowIdType, Account>();
 			{
 				//var rgAccountIds = new List<int>();
 				//using (var con = new IDbDataConnection (@"Data Source=(LocalDb)\v11.0;Integrated Security=SSPI;AttachDbFilename=|DataDirectory|\ImapBayes.mdf"))
@@ -133,7 +133,7 @@ namespace ImapBayes
 					{
 						while (reader.Read())
 						{
-							var idAccount = reader.GetInt32("id");
+							var idAccount = reader.GetValue<RowIdType>("id");
 
 							var ai = new Account(idAccount);
 
@@ -172,11 +172,11 @@ namespace ImapBayes
 
 					IEnumerable<Account> ParseAccountInfos()
 					{
-						IEnumerable<int> rgAccountIds;
+						IEnumerable<RowIdType> rgAccountIds;
 						if (rgParts.Length == 1)
 							rgAccountIds = mapAccountInfos.Keys;
 						else
-							rgAccountIds = rgParts.Skip(1).Select(str => int.TryParse(str, out int value) ? value : default(int?)).Where(v => v != null).Select(v => v.Value);
+							rgAccountIds = rgParts.Skip(1).Select(str => RowIdType.TryParse(str, out RowIdType value) ? value : default(RowIdType?)).Where(v => v != null).Select(v => v.Value);
 						foreach (var id in rgAccountIds)
 						{
 							if (mapAccountInfos.TryGetValue(id, out Account ai))
@@ -278,8 +278,8 @@ namespace ImapBayes
 
 						case "train":
 							{
-
-								if (rgParts.Length < 1 || !int.TryParse(rgParts[1], out int id))
+								RowIdType id = default(RowIdType);
+								if (rgParts.Length < 1 || !RowIdType.TryParse(rgParts[1], out id))
 								{
 									Trace.WriteLine($"syntax: train <id> [<folder> ...]");
 									break;
@@ -425,7 +425,7 @@ namespace ImapBayes
 	class MessageInfo
 	{
 		public int Id;
-		public int AccountId;
+		public RowIdType AccountId;
 		public string MessageId;
 		public bool? IsSpam;
 		public bool IsTrained;
@@ -444,13 +444,13 @@ namespace ImapBayes
 
 		public string SpamText => GetSpamText(this.IsSpam);
 
-		public static MessageInfo FromMessage(IDbConnection con, int idAccount, MailMessage msg)
+		public static MessageInfo FromMessage(IDbConnection con, RowIdType idAccount, MailMessage msg)
 		{
 			var strId = GetUniqueId(msg);
 			return FromMessageId(con, idAccount, strId);
 		}
 
-		public static MessageInfo FromMessageId(IDbConnection con, int idAccount, string strId)
+		public static MessageInfo FromMessageId(IDbConnection con, RowIdType idAccount, string strId)
 		{
 			using (var reader = con.ExecuteReader(@"
 					SELECT id, idAccount, strId, fSpam, strSubject, fTrained, nScore
@@ -468,7 +468,7 @@ namespace ImapBayes
 				return new MessageInfo
 				{
 					Id = reader.GetInt32("id"),
-					AccountId = reader.GetInt32("idAccount"),
+					AccountId = reader.GetValue<RowIdType>("idAccount"),
 					MessageId = reader.GetString("strId"),
 					IsSpam = reader.GetNullable<bool>("fSpam"),
 					Subject = reader.GetString("strSubject"),
@@ -501,7 +501,7 @@ namespace ImapBayes
 		const double _unknownWordStrength = 0.45;
 		const double _unknownWordProb = 0.5;
 
-		public int AccountId { get; }
+		public RowIdType AccountId { get; }
 		public string SpamFolder { get; }
 		public string UnsureFolder { get; }
 		public string InboxFolder { get; }
@@ -520,7 +520,7 @@ namespace ImapBayes
 
 		CancellationToken _token;
 
-		public Account(int idAccount)
+		public Account(RowIdType idAccount)
 		{
 			AccountId = idAccount;
 
@@ -577,7 +577,7 @@ WHERE id = @id",
 		{
 			using (var con = Program.GetConnection(true))
 			{
-				var id = con.ExecuteScalar<int>(@"
+				var id = con.ExecuteScalar<RowIdType>(@"
 INSERT INTO tblAccounts (strName, strHost, strUser, strPass, nPort, fUseSsl, fTraining, fActive, strInbox, strSpam, strUnsure, cSpam, cHam, nSpamCutoff, nHamCutoff)
 VALUES (@strName, @strHost, @strUser, @strPass, @nPort, @fUseSsl, 0, 1, @strInbox, @strSpam, @strUnsure, 0, 0, @nSpamCutoff, @nHamCutoff);
 SELECT " + _scopeIdentity,
@@ -688,7 +688,7 @@ SELECT " + _scopeIdentity,
 		}
 
 
-		void Train(CancellationToken token, string [] rgFolders)
+		void Train(CancellationToken token, string[] rgFolders)
 		{
 			_token = token;
 
@@ -1158,14 +1158,14 @@ SELECT " + _scopeIdentity,
 					return _mapTokens.GetOrAddSafe(strToken, str =>
 					{
 						((IDbDataParameter) cmdFindToken.Parameters[0]).Value = strToken;
-						RowIdType idToken = 0;
+						RowIdType idToken = default(RowIdType);
 						using (var reader = cmdFindToken.ExecuteReader())
 						{
 							if (reader.Read())
-								idToken = reader.GetInt32("id");
+								idToken = reader.GetValue<RowIdType>("id");
 						}
 
-						if (idToken == 0)
+						if (idToken == default(RowIdType))
 						{
 							((IDbDataParameter) cmdAddToken.Parameters[0]).Value = strToken;
 							idToken = cmdAddToken.ExecuteScalar<RowIdType>();

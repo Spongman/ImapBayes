@@ -296,6 +296,7 @@ namespace ImapBayes
 		public static long GetInt64(this IDataReader @this, string s) { return @this.GetInt64(@this.GetOrdinal(s)); }
 		public static string GetString(this IDataReader @this, string s) { return @this.GetString(@this.GetOrdinal(s)); }
 		public static object GetValue(this IDataReader @this, string s) { return @this.GetValue(@this.GetOrdinal(s)); }
+		public static T GetValue<T>(this IDataReader @this, string s) { return (T) @this.GetValue(@this.GetOrdinal(s)); }
 		public static bool IsDBNull(this IDataReader @this, string s) { return @this.IsDBNull(@this.GetOrdinal(s)); }
 	}
 }
