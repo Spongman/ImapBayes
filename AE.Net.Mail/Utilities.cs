@@ -581,34 +581,38 @@ namespace AE.Net.Mail
 		/// <exception cref="ArgumentNullException">If <paramref name="characterSet"/> is <see langword="null"/></exception>
 		public static Encoding ParseCharsetToEncoding(string characterSet, Encoding @default)
 		{
-			if (!string.IsNullOrEmpty(characterSet))
+			try
 			{
-				string charSetUpper = characterSet.ToUpperInvariant();
-				if (charSetUpper.Contains("WINDOWS") || charSetUpper.Contains("CP"))
+				if (!string.IsNullOrEmpty(characterSet))
 				{
-					// It seems the character set contains an codepage value, which we should use to parse the encoding
-					charSetUpper = charSetUpper.Replace("CP", ""); // Remove cp
-					charSetUpper = charSetUpper.Replace("WINDOWS", ""); // Remove windows
-					charSetUpper = charSetUpper.Replace("-", ""); // Remove - which could be used as cp-1554
+					string charSetUpper = characterSet.ToUpperInvariant();
+					if (charSetUpper.Contains("WINDOWS") || charSetUpper.Contains("CP"))
+					{
+						// It seems the character set contains an codepage value, which we should use to parse the encoding
+						charSetUpper = charSetUpper.Replace("CP", ""); // Remove cp
+						charSetUpper = charSetUpper.Replace("WINDOWS", ""); // Remove windows
+						charSetUpper = charSetUpper.Replace("-", ""); // Remove - which could be used as cp-1554
 
-					// Now we hope the only thing left in the characterSet is numbers.
-					int codepageNumber = int.Parse(charSetUpper, System.Globalization.CultureInfo.InvariantCulture);
+						// Now we hope the only thing left in the characterSet is numbers.
+						int codepageNumber = int.Parse(charSetUpper, System.Globalization.CultureInfo.InvariantCulture);
 
-					var encoding = Encoding.GetEncoding(codepageNumber);
-					if (encoding != null)
-						return encoding;
-					/*
-					return Encoding.GetEncodings().Where(x => x.CodePage == codepageNumber)
-						.Select(x => x.GetEncoding()).FirstOrDefault() ?? @default ?? Encoding.UTF8;
-					*/
-				}
+						var encoding = Encoding.GetEncoding(codepageNumber);
+						if (encoding != null)
+							return encoding;
+						/*
+						return Encoding.GetEncodings().Where(x => x.CodePage == codepageNumber)
+							.Select(x => x.GetEncoding()).FirstOrDefault() ?? @default ?? Encoding.UTF8;
+						*/
+					}
 
-				{
-					var encoding = Encoding.GetEncoding(characterSet);
-					if (encoding != null)
-						return encoding;
+					{
+						var encoding = Encoding.GetEncoding(characterSet);
+						if (encoding != null)
+							return encoding;
+					}
 				}
 			}
+			catch { }
 
 			return @default ?? Encoding.UTF8;
 
