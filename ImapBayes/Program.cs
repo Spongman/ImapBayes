@@ -866,9 +866,6 @@ SELECT " + _scopeIdentity,
 			if (fTraining)
 				Trace.WriteLine($"ProcessFolder: {strFolder}  ({cMessages} found)");
 
-			if (cMessages == 0)
-				return false;
-
 			if (fTraining && fSpamFolder == null)
 				fSpamFolder = false;
 
@@ -891,11 +888,14 @@ SELECT " + _scopeIdentity,
 					}
 				}
 
-				if (rgNewMessageIds.Count == 0)
-					return false;
+				Trace.WriteLine($"ProcessFolder: {rgNewMessageIds.Count} new");
 
 				rgMessageIds = rgNewMessageIds;
+				cMessages = rgMessageIds.Count;
 			}
+
+			if (cMessages == 0)
+				return false;
 
 			var fChanged = false;
 			int iMessage = 0;
@@ -948,11 +948,14 @@ SELECT " + _scopeIdentity,
 			{
 				foreach (var (start, end) in rgMessageIds.ToRanges(100))
 				{
+					Trace.WriteLine($"range {start} -> {end} ({end-start+1})");
 					if (_token.IsCancellationRequested)
 						return fChanged;
 
 					imapRead.GetMessages(start, end, true, false, false, (MailMessage msg) =>
 					{
+						Trace.WriteLine($"msg: {MessageInfo.GetUniqueId(msg)}");
+
 						using (var transaction = con.BeginTransaction())
 						{
 							cmdFetchTokenCounts.Transaction = transaction;
