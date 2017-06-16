@@ -24,8 +24,10 @@ using System.Data.Common;
 
 #if SQLITE
 using RowIdType = System.Int64;
+using RealType = System.Double;
 #else
 using RowIdType = int;
+using RealType = System.Single;
 #endif
 
 namespace ImapBayes
@@ -53,10 +55,10 @@ namespace ImapBayes
 #endif
 
 			/*
-			_strConnectionString = "Data Source=ImapBayes.s3db";
-			var providerName = "System.Data.SQLite";
-			DbFactory = Microsoft.Data.Sqlite.SqliteFactory.Instance;
-			*/
+			   _strConnectionString = "Data Source=ImapBayes.s3db";
+			   var providerName = "System.Data.SQLite";
+			   DbFactory = Microsoft.Data.Sqlite.SqliteFactory.Instance;
+			 */
 
 #if SQLITE
 			//var connectionString = ConfigurationManager.ConnectionStrings["default"];
@@ -69,7 +71,7 @@ namespace ImapBayes
 			DbFactory = System.Data.SqlClient.SqlClientFactory.Instance;
 #endif
 			/*
-			*/
+			 */
 
 			//_strConnectionString = @"Integrated Security=SSPI;Data Source=(LocalDb)\v11.0;AttachDbFilename=" + mdfPath;
 			//_strConnectionString = @"Initial Catalog=master;Data Source=(LocalDb)\v11.0;AttachDbFilename=|DataDirectory|ExecuteNonReader\ImapBayes.mdf";
@@ -126,10 +128,10 @@ namespace ImapBayes
 					//ExecuteScript(con, Resources.TrimScript);
 
 					using (var reader = con.ExecuteReader(@"
-							SELECT id
-							FROM tblAccounts
-							WHERE fActive <> 0",
-							CommandType.Text))
+								SELECT id
+								FROM tblAccounts
+								WHERE fActive <> 0",
+								CommandType.Text))
 					{
 						while (reader.Read())
 						{
@@ -159,8 +161,17 @@ namespace ImapBayes
 			while (true)
 			{
 				string strLine = Console.ReadLine();
-				if (strLine.Equals("quit", StringComparison.OrdinalIgnoreCase))
+				if (strLine == null)
 					break;
+
+				if (strLine.Equals("quit", StringComparison.OrdinalIgnoreCase))
+				{
+					Trace.WriteLine("cancelling...");
+					foreach (var ai in mapAccountInfos.Values)
+						ai.Stop();
+
+					break;
+				}
 
 				var rgParts = strLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 				if (rgParts.Length == 0)
@@ -250,11 +261,11 @@ namespace ImapBayes
 									nHamCutoff = 0.2f;
 
 								var ai = Account.Create(
-									strName, strHost, strUser, strPass,
-									nPort, fUseSSL,
-									strInbox, strSpam, strUnsure,
-									nSpamCutoff, nHamCutoff
-								);
+										strName, strHost, strUser, strPass,
+										nPort, fUseSSL,
+										strInbox, strSpam, strUnsure,
+										nSpamCutoff, nHamCutoff
+										);
 								mapAccountInfos[ai.AccountId] = ai;
 								Trace.WriteLine($"CREATED {ai.AccountId}\t{ai.User}");
 							}
@@ -310,9 +321,6 @@ namespace ImapBayes
 				}
 			}
 
-			Trace.WriteLine("cancelling...");
-			foreach (var ai in mapAccountInfos.Values)
-				ai.Stop();
 
 			Trace.WriteLine("waiting...");
 			Task.WaitAll(mapAccountInfos.Values.Select(ai => ai.Task).ToArray());
@@ -430,7 +438,7 @@ namespace ImapBayes
 		public bool? IsSpam;
 		public bool IsTrained;
 		public string Subject;
-		public float? Score;
+		public RealType? Score;
 
 		public static string GetSpamText(bool? fSpam)
 		{
@@ -453,12 +461,12 @@ namespace ImapBayes
 		public static MessageInfo FromMessageId(IDbConnection con, RowIdType idAccount, string strId)
 		{
 			using (var reader = con.ExecuteReader(@"
-					SELECT id, idAccount, strId, fSpam, strSubject, fTrained, nScore
-					FROM tblMessages
-					WHERE idAccount = @idAccount AND strId = @strId",
-				CommandType.Text,
-				Program.DbFactory.CreateParameter("@idAccount", idAccount),
-				Program.DbFactory.CreateParameter("@strId", strId)))
+						SELECT id, idAccount, strId, fSpam, strSubject, fTrained, nScore
+						FROM tblMessages
+						WHERE idAccount = @idAccount AND strId = @strId",
+						CommandType.Text,
+						Program.DbFactory.CreateParameter("@idAccount", idAccount),
+						Program.DbFactory.CreateParameter("@strId", strId)))
 			{
 				if (!reader.Read())
 				{
@@ -473,7 +481,7 @@ namespace ImapBayes
 					IsSpam = reader.GetNullable<bool>("fSpam"),
 					Subject = reader.GetString("strSubject"),
 					IsTrained = reader.GetBoolean("fTrained"),
-					Score = reader.GetNullable<float>("nScore")
+					Score = reader.GetNullable<RealType>("nScore")
 				};
 			}
 		}
@@ -529,11 +537,11 @@ namespace ImapBayes
 			using (var con = Program.GetConnection(true))
 			{
 				using (var reader = con.ExecuteReader(@"
-SELECT strName, strHost, strUser, strPass, nPort, fUseSsl, fTraining, strInbox, strSpam, strUnsure, cSpam, cHam, nSpamCutoff, nHamCutoff
-FROM tblAccounts
-WHERE id = @id",
-					CommandType.Text,
-					Program.DbFactory.CreateParameter("@id", AccountId)))
+							SELECT strName, strHost, strUser, strPass, nPort, fUseSsl, fTraining, strInbox, strSpam, strUnsure, cSpam, cHam, nSpamCutoff, nHamCutoff
+							FROM tblAccounts
+							WHERE id = @id",
+							CommandType.Text,
+							Program.DbFactory.CreateParameter("@id", AccountId)))
 				{
 					if (!reader.Read())
 						throw new Exception("account info not found: " + AccountId);
@@ -562,37 +570,37 @@ WHERE id = @id",
 #endif
 
 		public static Account Create(
-			string strName,
-			string strHost,
-			string strUser,
-			string strPass,
-			int nPort,
-			bool fUseSsl,
-			string strInbox,
-			string strSpam,
-			string strUnsure,
-			float nSpamCutoff,
-			float nHamCutoff
-		)
+				string strName,
+				string strHost,
+				string strUser,
+				string strPass,
+				int nPort,
+				bool fUseSsl,
+				string strInbox,
+				string strSpam,
+				string strUnsure,
+				float nSpamCutoff,
+				float nHamCutoff
+				)
 		{
 			using (var con = Program.GetConnection(true))
 			{
 				var id = con.ExecuteScalar<RowIdType>(@"
-INSERT INTO tblAccounts (strName, strHost, strUser, strPass, nPort, fUseSsl, fTraining, fActive, strInbox, strSpam, strUnsure, cSpam, cHam, nSpamCutoff, nHamCutoff)
-VALUES (@strName, @strHost, @strUser, @strPass, @nPort, @fUseSsl, 0, 1, @strInbox, @strSpam, @strUnsure, 0, 0, @nSpamCutoff, @nHamCutoff);
-SELECT " + _scopeIdentity,
-					CommandType.Text,
-					Program.DbFactory.CreateParameter("@strName", strName),
-					Program.DbFactory.CreateParameter("@strHost", strHost),
-					Program.DbFactory.CreateParameter("@strUser", strUser),
-					Program.DbFactory.CreateParameter("@strPass", strPass),
-					Program.DbFactory.CreateParameter("@nPort", nPort),
-					Program.DbFactory.CreateParameter("@fUseSsl", fUseSsl),
-					Program.DbFactory.CreateParameter("@strInbox", strInbox),
-					Program.DbFactory.CreateParameter("@strSpam", strSpam),
-					Program.DbFactory.CreateParameter("@strUnsure", strUnsure),
-					Program.DbFactory.CreateParameter("@nSpamCutoff", nSpamCutoff),
-					Program.DbFactory.CreateParameter("@nHamCutoff", nHamCutoff));
+						INSERT INTO tblAccounts (strName, strHost, strUser, strPass, nPort, fUseSsl, fTraining, fActive, strInbox, strSpam, strUnsure, cSpam, cHam, nSpamCutoff, nHamCutoff)
+						VALUES (@strName, @strHost, @strUser, @strPass, @nPort, @fUseSsl, 0, 1, @strInbox, @strSpam, @strUnsure, 0, 0, @nSpamCutoff, @nHamCutoff);
+						SELECT " + _scopeIdentity,
+						CommandType.Text,
+						Program.DbFactory.CreateParameter("@strName", strName),
+						Program.DbFactory.CreateParameter("@strHost", strHost),
+						Program.DbFactory.CreateParameter("@strUser", strUser),
+						Program.DbFactory.CreateParameter("@strPass", strPass),
+						Program.DbFactory.CreateParameter("@nPort", nPort),
+						Program.DbFactory.CreateParameter("@fUseSsl", fUseSsl),
+						Program.DbFactory.CreateParameter("@strInbox", strInbox),
+						Program.DbFactory.CreateParameter("@strSpam", strSpam),
+						Program.DbFactory.CreateParameter("@strUnsure", strUnsure),
+						Program.DbFactory.CreateParameter("@nSpamCutoff", nSpamCutoff),
+						Program.DbFactory.CreateParameter("@nHamCutoff", nHamCutoff));
 
 				return new Account(id);
 			}
@@ -612,7 +620,8 @@ SELECT " + _scopeIdentity,
 		public void Train(string[] rgFolders)
 		{
 			Debug.Assert(!IsRunning);
-			this.Task = Task.Run(() => this.Train(this.TokenSource.Token, rgFolders));
+			this.Train(this.TokenSource.Token, rgFolders);
+			//this.Task = Task.Run(() => this.Train(this.TokenSource.Token, rgFolders));
 		}
 
 		public void Clean()
@@ -669,16 +678,16 @@ SELECT " + _scopeIdentity,
 				using (var con = Program.GetConnection())
 				{
 					con.ExecuteNonQuery(
-						"DELETE tblTokenCounts WHERE idAccount = @idAccount",
-						CommandType.Text,
-						Program.DbFactory.CreateParameter("@idAccount", AccountId)
-					);
+							"DELETE tblTokenCounts WHERE idAccount = @idAccount",
+							CommandType.Text,
+							Program.DbFactory.CreateParameter("@idAccount", AccountId)
+							);
 
 					con.ExecuteNonQuery(
-						"DELETE tblMessages WHERE idAccount = @idAccount",
-						CommandType.Text,
-						Program.DbFactory.CreateParameter("@idAccount", AccountId)
-					);
+							"DELETE tblMessages WHERE idAccount = @idAccount",
+							CommandType.Text,
+							Program.DbFactory.CreateParameter("@idAccount", AccountId)
+							);
 
 					_cHamTotal = 0;
 					_cSpamTotal = 0;
@@ -791,21 +800,21 @@ SELECT " + _scopeIdentity,
 		}
 
 		[DebuggerDisplay("{Value}")]
-		class TokenRecord
-		{
-			public RowIdType Id;
-			//public int SpamCount;
-			//public int HamCount;
-			public string Value;
-
-			class EqualityComparer : IEqualityComparer<TokenRecord>
+			class TokenRecord
 			{
-				public bool Equals(TokenRecord x, TokenRecord y) => x.Id == y.Id;
-				public int GetHashCode(TokenRecord obj) => obj.Id.GetHashCode();
-			}
+				public RowIdType Id;
+				//public int SpamCount;
+				//public int HamCount;
+				public string Value;
 
-			public static IEqualityComparer<TokenRecord> Comparer = new EqualityComparer();
-		}
+				class EqualityComparer : IEqualityComparer<TokenRecord>
+				{
+					public bool Equals(TokenRecord x, TokenRecord y) => x.Id == y.Id;
+					public int GetHashCode(TokenRecord obj) => obj.Id.GetHashCode();
+				}
+
+				public static IEqualityComparer<TokenRecord> Comparer = new EqualityComparer();
+			}
 
 		const int _maxTokenLength = 100;
 
@@ -880,11 +889,11 @@ SELECT " + _scopeIdentity,
 							return false;
 
 						imap.GetMessages(start, end, true, true, false, (MailMessage msg) =>
-						{
-							var mi = MessageInfo.FromMessage(con, AccountId, msg);
-							if (mi == null || mi.IsSpam != fSpamFolder)
+								{
+								var mi = MessageInfo.FromMessage(con, AccountId, msg);
+								if (mi == null || mi.IsSpam != fSpamFolder)
 								rgNewMessageIds.Add(msg.Uid);
-						});
+								});
 					}
 				}
 
@@ -909,228 +918,228 @@ SELECT " + _scopeIdentity,
 			var paramUpdateHamCount = Program.DbFactory.CreateParameter("@cHam", DbType.Int32);
 
 			using (var cmdFetchTokenCounts = con.GetCommand(
-				"SELECT cSpam, cHam FROM tblTokenCounts WHERE idAccount = @idAccount AND idToken = @idToken",
-				CommandType.Text,
-				Program.DbFactory.CreateParameter("@idAccount", AccountId),
-				paramFetchTokenId))
-			using (var cmdAddTokenCount = con.GetCommand(
-				"INSERT INTO tblTokenCounts (idAccount, idToken, cSpam, cHam) VALUES (@idAccount, @idToken, @cSpam, @cHam)",
-				CommandType.Text,
-				Program.DbFactory.CreateParameter("@idAccount", AccountId),
-				paramAddTokenId,
-				paramAddSpamCount,
-				paramAddHamCount
-				))
-			using (var cmdUpdateTokenCount = con.GetCommand(
-				"UPDATE tblTokenCounts SET cSpam = @cSpam, cHam = @cHam WHERE idAccount = @idAccount AND idToken = @idToken",
-				CommandType.Text,
-				Program.DbFactory.CreateParameter("@idAccount", AccountId),
-				paramUpdateTokenId,
-				paramUpdateSpamCount,
-				paramUpdateHamCount))
-			using (var cmdAddMessage = con.GetCommand(
-				"INSERT INTO tblMessages (idAccount, strId, strSubject, fSpam, fTrained, nScore) VALUES (@idAccount, @strId, @strSubject, @fSpam, @fTrained, @nScore)",
-				CommandType.Text,
-				Program.DbFactory.CreateParameter("@idAccount", AccountId),
-				Program.DbFactory.CreateParameter("@strId", DbType.AnsiString),
-				Program.DbFactory.CreateParameter("@strSubject", DbType.String),
-				Program.DbFactory.CreateParameter("@fSpam", DbType.Boolean),
-				Program.DbFactory.CreateParameter("@fTrained", DbType.Boolean),
-				Program.DbFactory.CreateParameter("@nScore", DbType.Single)))
-			using (var cmdUpdateMessage = con.GetCommand(
-				"UPDATE tblMessages SET fSpam=@fSpam, fTrained=@fTrained, nScore=@nScore WHERE id=@id",
-				CommandType.Text,
-				Program.DbFactory.CreateParameter("@fSpam", DbType.Boolean),
-				Program.DbFactory.CreateParameter("@fTrained", DbType.Boolean),
-				Program.DbFactory.CreateParameter("@nScore", DbType.Single),
-				Program.DbFactory.CreateParameter("@id", DbType.Int32)))
-			using (var imapRead = GetImapClient(strFolder))
-			{
-				foreach (var (start, end) in rgMessageIds.ToRanges(100))
+						"SELECT cSpam, cHam FROM tblTokenCounts WHERE idAccount = @idAccount AND idToken = @idToken",
+						CommandType.Text,
+						Program.DbFactory.CreateParameter("@idAccount", AccountId),
+						paramFetchTokenId))
+				using (var cmdAddTokenCount = con.GetCommand(
+							"INSERT INTO tblTokenCounts (idAccount, idToken, cSpam, cHam) VALUES (@idAccount, @idToken, @cSpam, @cHam)",
+							CommandType.Text,
+							Program.DbFactory.CreateParameter("@idAccount", AccountId),
+							paramAddTokenId,
+							paramAddSpamCount,
+							paramAddHamCount
+							))
+				using (var cmdUpdateTokenCount = con.GetCommand(
+							"UPDATE tblTokenCounts SET cSpam = @cSpam, cHam = @cHam WHERE idAccount = @idAccount AND idToken = @idToken",
+							CommandType.Text,
+							Program.DbFactory.CreateParameter("@idAccount", AccountId),
+							paramUpdateTokenId,
+							paramUpdateSpamCount,
+							paramUpdateHamCount))
+				using (var cmdAddMessage = con.GetCommand(
+							"INSERT INTO tblMessages (idAccount, strId, strSubject, fSpam, fTrained, nScore) VALUES (@idAccount, @strId, @strSubject, @fSpam, @fTrained, @nScore)",
+							CommandType.Text,
+							Program.DbFactory.CreateParameter("@idAccount", AccountId),
+							Program.DbFactory.CreateParameter("@strId", DbType.AnsiString),
+							Program.DbFactory.CreateParameter("@strSubject", DbType.String),
+							Program.DbFactory.CreateParameter("@fSpam", DbType.Boolean),
+							Program.DbFactory.CreateParameter("@fTrained", DbType.Boolean),
+							Program.DbFactory.CreateParameter("@nScore", DbType.Single)))
+				using (var cmdUpdateMessage = con.GetCommand(
+							"UPDATE tblMessages SET fSpam=@fSpam, fTrained=@fTrained, nScore=@nScore WHERE id=@id",
+							CommandType.Text,
+							Program.DbFactory.CreateParameter("@fSpam", DbType.Boolean),
+							Program.DbFactory.CreateParameter("@fTrained", DbType.Boolean),
+							Program.DbFactory.CreateParameter("@nScore", DbType.Single),
+							Program.DbFactory.CreateParameter("@id", DbType.Int32)))
+				using (var imapRead = GetImapClient(strFolder))
 				{
-					Trace.WriteLine($"range {start} -> {end} ({end-start+1})");
-					if (_token.IsCancellationRequested)
-						return fChanged;
-
-					imapRead.GetMessages(start, end, true, false, false, (MailMessage msg) =>
+					foreach (var (start, end) in rgMessageIds.ToRanges(100))
 					{
-						Trace.WriteLine($"msg: {MessageInfo.GetUniqueId(msg)}");
+						//Trace.WriteLine($"range {start} -> {end} ({end-start+1})");
+						if (_token.IsCancellationRequested)
+							return fChanged;
 
-						using (var transaction = con.BeginTransaction())
-						{
-							cmdFetchTokenCounts.Transaction = transaction;
-							cmdUpdateMessage.Transaction = transaction;
-							cmdAddMessage.Transaction = transaction;
-							cmdUpdateTokenCount.Transaction = transaction;
-							cmdAddTokenCount.Transaction = transaction;
+						imapRead.GetMessages(start, end, true, false, false, (MailMessage msg) =>
+								{
+								//Trace.WriteLine($"msg: {MessageInfo.GetUniqueId(msg)}");
 
-							iMessage++;
-							var rgMessageTokens = GetMessageTokens(transaction, msg).Select(p => p.token).ToArray();
+								using (var transaction = con.BeginTransaction())
+								{
+								cmdFetchTokenCounts.Transaction = transaction;
+								cmdUpdateMessage.Transaction = transaction;
+								cmdAddMessage.Transaction = transaction;
+								cmdUpdateTokenCount.Transaction = transaction;
+								cmdAddTokenCount.Transaction = transaction;
 
-							bool fNew = false;
-							var mi = MessageInfo.FromMessage(con, AccountId, msg);
-							if (mi == null)
-							{
+								iMessage++;
+								var rgMessageTokens = GetMessageTokens(transaction, msg).Select(p => p.token).ToArray();
+
+								bool fNew = false;
+								var mi = MessageInfo.FromMessage(con, AccountId, msg);
+								if (mi == null)
+								{
 								fNew = true;
 								mi = new MessageInfo
 								{
 									AccountId = AccountId,
-									MessageId = MessageInfo.GetUniqueId(msg),
-									Subject = msg.Subject,
+											  MessageId = MessageInfo.GetUniqueId(msg),
+											  Subject = msg.Subject,
 								};
-							}
+								}
 
-							if (!fNew || fTraining)
-							{
-								if (mi.IsSpam != (fSpamFolder == true))
+								if (!fNew || fTraining)
 								{
-									Trace.WriteLine(string.Format("{0}:{1}\t ({2}/{3}) OLD {4} : {5}", AccountId, strFolder, iMessage, cMessages, MessageInfo.GetSpamText(fSpamFolder == true), msg.Subject));
-
-									foreach (var tr in rgMessageTokens)
+									if (mi.IsSpam != (fSpamFolder == true))
 									{
-										int cSpam = 0, cHam = 0;
-										bool fExists = false;
+										Trace.WriteLine(string.Format("{0}:{1}\t ({2}/{3}) OLD {4} : {5}", AccountId, strFolder, iMessage, cMessages, MessageInfo.GetSpamText(fSpamFolder == true), msg.Subject));
 
-										paramFetchTokenId.Value = tr.Id;
-										using (var reader = cmdFetchTokenCounts.ExecuteReader())
+										foreach (var tr in rgMessageTokens)
 										{
-											if (reader != null && reader.Read())
+											int cSpam = 0, cHam = 0;
+											bool fExists = false;
+
+											paramFetchTokenId.Value = tr.Id;
+											using (var reader = cmdFetchTokenCounts.ExecuteReader())
 											{
-												cSpam = reader.GetInt32("cSpam");
-												cHam = reader.GetInt32("cHam");
-												fExists = true;
+												if (reader != null && reader.Read())
+												{
+													cSpam = reader.GetInt32("cSpam");
+													cHam = reader.GetInt32("cHam");
+													fExists = true;
+												}
+											}
+
+											if (fExists && mi.IsTrained)
+											{
+												if (mi.IsSpam == false && cHam > 0)
+													cHam--;
+												if (mi.IsSpam == true && cSpam > 0)
+													cSpam--;
+											}
+
+											if (fSpamFolder == true)
+												cSpam++;
+											else
+												cHam++;
+
+											if (fExists)
+											{
+												paramUpdateTokenId.Value = tr.Id;
+												paramUpdateSpamCount.Value = cSpam;
+												paramUpdateHamCount.Value = cHam;
+												cmdUpdateTokenCount.ExecuteNonQuery();
+											}
+											else
+											{
+												paramAddTokenId.Value = tr.Id;
+												paramAddSpamCount.Value = cSpam;
+												paramAddHamCount.Value = cHam;
+												cmdAddTokenCount.ExecuteNonQuery();
 											}
 										}
 
-										if (fExists && mi.IsTrained)
+										if (!fNew)
 										{
-											if (mi.IsSpam == false && cHam > 0)
-												cHam--;
-											if (mi.IsSpam == true && cSpam > 0)
-												cSpam--;
+											if (mi.IsSpam == false)
+												System.Threading.Interlocked.Decrement(ref _cHamTotal);
+											if (mi.IsSpam == true)
+												System.Threading.Interlocked.Decrement(ref _cSpamTotal);
 										}
 
 										if (fSpamFolder == true)
-											cSpam++;
+											System.Threading.Interlocked.Increment(ref _cSpamTotal);
 										else
-											cHam++;
+											System.Threading.Interlocked.Increment(ref _cHamTotal);
 
-										if (fExists)
-										{
-											paramUpdateTokenId.Value = tr.Id;
-											paramUpdateSpamCount.Value = cSpam;
-											paramUpdateHamCount.Value = cHam;
-											cmdUpdateTokenCount.ExecuteNonQuery();
-										}
-										else
-										{
-											paramAddTokenId.Value = tr.Id;
-											paramAddSpamCount.Value = cSpam;
-											paramAddHamCount.Value = cHam;
-											cmdAddTokenCount.ExecuteNonQuery();
-										}
+										SaveSpanCounts(con);
+
+										mi.IsTrained = true;
+										mi.IsSpam = fSpamFolder == true;
 									}
 
-									if (!fNew)
-									{
-										if (mi.IsSpam == false)
-											System.Threading.Interlocked.Decrement(ref _cHamTotal);
-										if (mi.IsSpam == true)
-											System.Threading.Interlocked.Decrement(ref _cSpamTotal);
-									}
-
-									if (fSpamFolder == true)
-										System.Threading.Interlocked.Increment(ref _cSpamTotal);
-									else
-										System.Threading.Interlocked.Increment(ref _cHamTotal);
-
-									SaveSpanCounts(con);
-
-									mi.IsTrained = true;
-									mi.IsSpam = fSpamFolder == true;
+									SetMessageFlags();
 								}
-
-								SetMessageFlags();
-							}
-							else
-							{
-								var spamScore = ClassifyTokenCounts(FetchTokenCounts(transaction, rgMessageTokens));
-								mi.Score = (float) spamScore;
-
-								bool? fSpam = null;
-								if (spamScore < _hamCutoff)
-									fSpam = false;
-								else if (spamScore > _spamCutoff)
-									fSpam = true;
-
-								Trace.WriteLine(string.Format("{0}:{1}\t ({2}/{3}) NEW {4}({5:N2}) : {6}", AccountId, strFolder, iMessage, cMessages, MessageInfo.GetSpamText(fSpam), spamScore, msg.Subject));
-
-								mi.IsSpam = fSpam;
-								SetMessageFlags();
-
-								if (fSpamFolder == null)
+								else
 								{
-									switch (fSpam)
+									var spamScore = ClassifyTokenCounts(FetchTokenCounts(transaction, rgMessageTokens));
+									mi.Score = (float) spamScore;
+
+									bool? fSpam = null;
+									if (spamScore < _hamCutoff)
+										fSpam = false;
+									else if (spamScore > _spamCutoff)
+										fSpam = true;
+
+									Trace.WriteLine(string.Format("{0}:{1}\t ({2}/{3}) NEW {4}({5:N2}) : {6}", AccountId, strFolder, iMessage, cMessages, MessageInfo.GetSpamText(fSpam), spamScore, msg.Subject));
+
+									mi.IsSpam = fSpam;
+									SetMessageFlags();
+
+									if (fSpamFolder == null)
 									{
-										case true:  // SPAM
-											if (strFolder != SpamFolder)
-											{
-												imap.MoveMessage(msg, SpamFolder);
-												msg = null;
-												fChanged = true;
-											}
+										switch (fSpam)
+										{
+											case true:  // SPAM
+												if (strFolder != SpamFolder)
+												{
+													imap.MoveMessage(msg, SpamFolder);
+													msg = null;
+													fChanged = true;
+												}
+												break;
+											case null:  // UNSURE
+												if (strFolder != UnsureFolder)
+												{
+													imap.MoveMessage(msg, UnsureFolder);
+													msg = null;
+													fChanged = true;
+												}
+												break;
+										}
+									}
+								}
+
+								if (fNew)
+								{
+									((IDbDataParameter) cmdAddMessage.Parameters["@strId"]).Value = mi.MessageId;
+									((IDbDataParameter) cmdAddMessage.Parameters["@strSubject"]).Value = mi.Subject.Substring(0, Math.Min(200, mi.Subject.Length));
+									((IDbDataParameter) cmdAddMessage.Parameters["@fSpam"]).Value = (object) mi.IsSpam ?? DBNull.Value;
+									((IDbDataParameter) cmdAddMessage.Parameters["@fTrained"]).Value = mi.IsTrained;
+									((IDbDataParameter) cmdAddMessage.Parameters["@nScore"]).Value = (object) mi.Score ?? DBNull.Value;
+									cmdAddMessage.ExecuteNonQuery();
+								}
+								else
+								{
+									((IDbDataParameter) cmdUpdateMessage.Parameters["@id"]).Value = mi.Id;
+									((IDbDataParameter) cmdUpdateMessage.Parameters["@fSpam"]).Value = (object) mi.IsSpam ?? DBNull.Value;
+									((IDbDataParameter) cmdUpdateMessage.Parameters["@fTrained"]).Value = mi.IsTrained;
+									((IDbDataParameter) cmdUpdateMessage.Parameters["@nScore"]).Value = (object) mi.Score ?? DBNull.Value;
+									cmdUpdateMessage.ExecuteNonQuery();
+								}
+
+								void SetMessageFlags()
+								{
+									switch (mi.IsSpam)
+									{
+										case true:
+											fChanged |= imap.AddFlags(new[] { "spam" }, msg);
+											fChanged |= imap.RemoveFlags(new[] { "ham" }, msg);
 											break;
-										case null:  // UNSURE
-											if (strFolder != UnsureFolder)
-											{
-												imap.MoveMessage(msg, UnsureFolder);
-												msg = null;
-												fChanged = true;
-											}
+										default:
+										case false:
+											fChanged |= imap.AddFlags(new[] { "ham" }, msg);
+											fChanged |= imap.RemoveFlags(new[] { "spam" }, msg);
 											break;
 									}
 								}
-							}
 
-							if (fNew)
-							{
-								((IDbDataParameter) cmdAddMessage.Parameters["@strId"]).Value = mi.MessageId;
-								((IDbDataParameter) cmdAddMessage.Parameters["@strSubject"]).Value = mi.Subject.Substring(0, Math.Min(200, mi.Subject.Length));
-								((IDbDataParameter) cmdAddMessage.Parameters["@fSpam"]).Value = (object) mi.IsSpam ?? DBNull.Value;
-								((IDbDataParameter) cmdAddMessage.Parameters["@fTrained"]).Value = mi.IsTrained;
-								((IDbDataParameter) cmdAddMessage.Parameters["@nScore"]).Value = (object) mi.Score ?? DBNull.Value;
-								cmdAddMessage.ExecuteNonQuery();
-							}
-							else
-							{
-								((IDbDataParameter) cmdUpdateMessage.Parameters["@id"]).Value = mi.Id;
-								((IDbDataParameter) cmdUpdateMessage.Parameters["@fSpam"]).Value = (object) mi.IsSpam ?? DBNull.Value;
-								((IDbDataParameter) cmdUpdateMessage.Parameters["@fTrained"]).Value = mi.IsTrained;
-								((IDbDataParameter) cmdUpdateMessage.Parameters["@nScore"]).Value = (object) mi.Score ?? DBNull.Value;
-								cmdUpdateMessage.ExecuteNonQuery();
-							}
-
-							void SetMessageFlags()
-							{
-								switch (mi.IsSpam)
-								{
-									case true:
-										fChanged |= imap.AddFlags(new[] { "spam" }, msg);
-										fChanged |= imap.RemoveFlags(new[] { "ham" }, msg);
-										break;
-									default:
-									case false:
-										fChanged |= imap.AddFlags(new[] { "ham" }, msg);
-										fChanged |= imap.RemoveFlags(new[] { "spam" }, msg);
-										break;
+								transaction.Commit();
 								}
-							}
-
-							transaction.Commit();
-						}
-					});
+								});
+					}
 				}
-			}
 
 			if (fChanged)
 			{
@@ -1146,11 +1155,11 @@ SELECT " + _scopeIdentity,
 		void SaveSpanCounts(IDbConnection con)
 		{
 			using (var cmdUpdateSpamCounts = con.GetCommand(
-				"UPDATE tblAccounts SET cSpam = @cSpam, cHam = @cHam WHERE Id = @idAccount",
-				CommandType.Text,
-				Program.DbFactory.CreateParameter("@idAccount", AccountId),
-				Program.DbFactory.CreateParameter("@cSpam", _cSpamTotal),
-				Program.DbFactory.CreateParameter("@cHam", _cHamTotal)))
+						"UPDATE tblAccounts SET cSpam = @cSpam, cHam = @cHam WHERE Id = @idAccount",
+						CommandType.Text,
+						Program.DbFactory.CreateParameter("@idAccount", AccountId),
+						Program.DbFactory.CreateParameter("@cSpam", _cSpamTotal),
+						Program.DbFactory.CreateParameter("@cHam", _cHamTotal)))
 			{
 				cmdUpdateSpamCounts.ExecuteNonQuery();
 			}
@@ -1159,73 +1168,73 @@ SELECT " + _scopeIdentity,
 		static IEnumerable<(TokenRecord token, int count)> GetMessageTokens(IDbTransaction transaction, MailMessage msg)
 		{
 			using (var cmdFindToken = transaction.GetCommand(
-				"SELECT id from tblTokens WHERE value = @value",
-				CommandType.Text,
-				Program.DbFactory.CreateParameter("@value", DbType.String)))
-			using (var cmdAddToken = transaction.GetCommand(
-				"INSERT INTO tblTokens (value) VALUES (@value); SELECT CAST(" + _scopeIdentity + " as Int);",
-				CommandType.Text,
-				Program.DbFactory.CreateParameter("@value", DbType.String)))
-			{
-				Func<string, TokenRecord> FetchToken = strToken =>
+						"SELECT id from tblTokens WHERE value = @value",
+						CommandType.Text,
+						Program.DbFactory.CreateParameter("@value", DbType.String)))
+				using (var cmdAddToken = transaction.GetCommand(
+							"INSERT INTO tblTokens (value) VALUES (@value); SELECT CAST(" + _scopeIdentity + " as Int);",
+							CommandType.Text,
+							Program.DbFactory.CreateParameter("@value", DbType.String)))
 				{
-					return _mapTokens.GetOrAddSafe(strToken, str =>
+					Func<string, TokenRecord> FetchToken = strToken =>
 					{
-						((IDbDataParameter) cmdFindToken.Parameters[0]).Value = strToken;
-						RowIdType idToken = default(RowIdType);
-						using (var reader = cmdFindToken.ExecuteReader())
-						{
-							if (reader.Read())
+						return _mapTokens.GetOrAddSafe(strToken, str =>
+								{
+								((IDbDataParameter) cmdFindToken.Parameters[0]).Value = strToken;
+								RowIdType idToken = default(RowIdType);
+								using (var reader = cmdFindToken.ExecuteReader())
+								{
+								if (reader.Read())
 								idToken = reader.GetValue<RowIdType>("id");
-						}
+								}
 
-						if (idToken == default(RowIdType))
-						{
-							((IDbDataParameter) cmdAddToken.Parameters[0]).Value = strToken;
-							idToken = cmdAddToken.ExecuteScalar<RowIdType>();
-						}
+								if (idToken == default(RowIdType))
+								{
+								((IDbDataParameter) cmdAddToken.Parameters[0]).Value = strToken;
+								idToken = cmdAddToken.ExecuteScalar<RowIdType>();
+								}
 
-						return new TokenRecord
-						{
-							Id = idToken,
-							Value = strToken,
-						};
-					});
-				};
+								return new TokenRecord
+								{
+								Id = idToken,
+								Value = strToken,
+								};
+								});
+					};
 
-				return
-					Tokenize(msg)
-					.GroupBy(t => t)
-					.OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
-					.Select(group =>
-					{
-						var strToken = group.Key;
-						var count = group.Count();
+					return
+						Tokenize(msg)
+						.GroupBy(t => t)
+						.OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+						.Select(group =>
+								{
+								var strToken = group.Key;
+								var count = group.Count();
 
-						if (strToken.Length > _maxTokenLength)
-							strToken = strToken.Substring(0, _maxTokenLength);
+								if (strToken.Length > _maxTokenLength)
+								strToken = strToken.Substring(0, _maxTokenLength);
 
-						TokenRecord token;
-						try
-						{
-							token = FetchToken(strToken);
-						}
-						catch (DbException)
-						{
-							token = FetchToken(strToken);
-						}
+								TokenRecord token;
+								try
+								{
+								token = FetchToken(strToken);
+								}
+								catch (DbException)
+								{
+								token = FetchToken(strToken);
+								}
 
-						return (token, count);
-					})
+								return (token, count);
+								})
 					.GroupBy(tc => tc.Item1, (token, rgTCs) =>
-						(
-							Token: token,
-							Count: rgTCs.Sum(tc => tc.Item2)
-						),
-						TokenRecord.Comparer
-					)
-					.OrderBy(tc => tc.Token.Id);
-			}
+							(
+							 Token: token,
+							 Count: rgTCs.Sum(tc => tc.Item2)
+							),
+							TokenRecord.Comparer
+							)
+						.OrderBy(tc => tc.Token.Id);
+				}
 		}
 
 		IEnumerable<(int cSpam, int cHam)> FetchTokenCounts(IDbTransaction con, IEnumerable<TokenRecord> tokens)
@@ -1233,10 +1242,10 @@ SELECT " + _scopeIdentity,
 			IDbDataParameter paramTokenId = Program.DbFactory.CreateParameter("@idToken", DbType.Int32);
 
 			using (var cmdFetchTokenCounts = con.GetCommand(
-				"SELECT cSpam, cHam FROM tblTokenCounts WHERE idAccount = @idAccount AND idToken = @idToken",
-				CommandType.Text,
-				Program.DbFactory.CreateParameter("@idAccount", AccountId),
-				paramTokenId))
+						"SELECT cSpam, cHam FROM tblTokenCounts WHERE idAccount = @idAccount AND idToken = @idToken",
+						CommandType.Text,
+						Program.DbFactory.CreateParameter("@idAccount", AccountId),
+						paramTokenId))
 			{
 				foreach (var tr in tokens)
 				{
@@ -1390,29 +1399,29 @@ SELECT " + _scopeIdentity,
 		static readonly Regex _reStripHTML = new Regex(@" < [^\s<>] [^>]{0,256} > ", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline);
 
 		static readonly Stripper _stripUUencode = new Stripper(
-			new Regex(@" ^begin \s+ (\S+) \s+ (\S+) \s* $", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline),
-			new Regex(@"^end\s*$", RegexOptions.Compiled | RegexOptions.Multiline),
-			m =>
-			{
+				new Regex(@" ^begin \s+ (\S+) \s+ (\S+) \s* $", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline),
+				new Regex(@"^end\s*$", RegexOptions.Compiled | RegexOptions.Multiline),
+				m =>
+				{
 				return TokenizeFilename(m.Groups[2].Value).Select(s => "uuencode:" + s)
-					.Append("uuencode mode" + m.Groups[1].Value);
-			}
-		);
+				.Append("uuencode mode" + m.Groups[1].Value);
+				}
+				);
 
 		static readonly Stripper _stripStyle = new Stripper(
-			new Regex(@"< \s* style \s+ [^>]* >", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline),
-			new Regex(@"</ \s* style [^>]* >", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline)
-		);
+				new Regex(@"< \s* style \s+ [^>]* >", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline),
+				new Regex(@"</ \s* style [^>]* >", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline)
+				);
 
 		static readonly Stripper _stripComments = new Stripper(
-			new Regex(@"<!-- | < \s* comment \s* [^>]* >", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline),
-			new Regex(@"-->|</ \s* comment [^>]* >", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline)
-		);
+				new Regex(@"<!-- | < \s* comment \s* [^>]* >", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline),
+				new Regex(@"-->|</ \s* comment [^>]* >", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline)
+				);
 
 		static readonly Stripper _stripNoframes = new Stripper(
-			new Regex(@"< \s* noframes \s+ [^>]* >", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline),
-			new Regex(@"</ \s* noframes [^>]* >", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline)
-		);
+				new Regex(@"< \s* noframes \s+ [^>]* >", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline),
+				new Regex(@"</ \s* noframes [^>]* >", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline)
+				);
 
 		static readonly Stripper[] _rgStrippers = {
 			_stripUUencode,
@@ -1496,10 +1505,10 @@ SELECT " + _scopeIdentity,
 				if (strContentTransferEncoding == "quoted-printable")
 				{
 					strBody = _reQuotedPrintable.Replace(strBody, m =>
-					{
-						var n = int.Parse(m.Groups[1].Value, System.Globalization.NumberStyles.HexNumber);
-						return ((char) n).ToString();
-					});
+							{
+							var n = int.Parse(m.Groups[1].Value, System.Globalization.NumberStyles.HexNumber);
+							return ((char) n).ToString();
+							});
 				}
 
 				HtmlNode body = null;
@@ -1549,13 +1558,13 @@ SELECT " + _scopeIdentity,
 				}
 
 				strBody = _reFindEntity.Replace(strBody, m =>
-				{
-					string strValue = m.Groups[1].Value;
-					var value = int.Parse(strValue);
-					var ch = (char) value;
+						{
+						string strValue = m.Groups[1].Value;
+						var value = int.Parse(strValue);
+						var ch = (char) value;
 
-					return ch.ToString();
-				});
+						return ch.ToString();
+						});
 
 				strBody = Utils.ReplaceEntities(strBody);
 
@@ -1572,20 +1581,20 @@ SELECT " + _scopeIdentity,
 				strBody = _reStripHTML.Replace(strBody, "");
 
 				strBody = _reColor.Replace(strBody, m =>
-				{
-					rgExtraTokens.Add("token:color");
-					return "";
-				});
+						{
+						rgExtraTokens.Add("token:color");
+						return "";
+						});
 
 				strBody = _rePrice.Replace(strBody, m =>
-				{
-					if (m.Groups[2].Success)
+						{
+						if (m.Groups[2].Success)
 						rgExtraTokens.Add("token:price/" + m.Groups[2].Value);
-					else
+						else
 						rgExtraTokens.Add("token:price");
 
-					return "";
-				});
+						return "";
+						});
 
 				foreach (var token in TokenizeText(strBody))
 					yield return token;
