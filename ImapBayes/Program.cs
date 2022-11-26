@@ -1,4 +1,4 @@
-﻿#define SQLITE
+#define SQLITE
 
 using System;
 using System.Collections.Concurrent;
@@ -177,148 +177,146 @@ namespace ImapBayes
 				if (rgParts.Length == 0)
 					continue;
 
-				using (var con = GetConnection())
-				{
-					var strCommand = rgParts[0].ToLower();
+				var strCommand = rgParts[0].ToLower();
 
-					IEnumerable<Account> ParseAccountInfos()
+				IEnumerable<Account> ParseAccountInfos()
+				{
+					IEnumerable<RowIdType> rgAccountIds;
+					if (rgParts.Length == 1)
+						rgAccountIds = mapAccountInfos.Keys;
+					else
+						rgAccountIds = rgParts.Skip(1).Select(str => RowIdType.TryParse(str, out RowIdType value) ? value : default(RowIdType?)).Where(v => v != null).Select(v => v.Value);
+
+					foreach (var id in rgAccountIds)
 					{
-						IEnumerable<RowIdType> rgAccountIds;
-						if (rgParts.Length == 1)
-							rgAccountIds = mapAccountInfos.Keys;
-						else
-							rgAccountIds = rgParts.Skip(1).Select(str => RowIdType.TryParse(str, out RowIdType value) ? value : default(RowIdType?)).Where(v => v != null).Select(v => v.Value);
-						foreach (var id in rgAccountIds)
+						if (mapAccountInfos.TryGetValue(id, out Account ai))
 						{
-							if (mapAccountInfos.TryGetValue(id, out Account ai))
-							{
-								yield return ai;
-							}
+							yield return ai;
 						}
 					}
-
-					switch (strCommand)
-					{
-						default:
-							Trace.WriteLine($"{strCommand}: command not found");
-							continue;
-
-						case "accounts":
-							foreach (var ai in mapAccountInfos.OrderBy(p => p.Key).Select(p => p.Value))
-								Trace.WriteLine($"{ai.AccountId}\t: {ai.Status}\t{ai.User}");
-							break;
-
-						case "add":
-							{
-								Console.WriteLine("Name:");
-								var strName = Console.ReadLine().Trim();
-
-								Console.WriteLine("Host:");
-								var strHost = Console.ReadLine().Trim();
-
-								Console.WriteLine("SSL?");
-								var strSSL = Console.ReadLine().Trim();
-								var fUseSSL = new[] { "y", "1", "yes", "true" }.Contains(strSSL.ToLower());
-
-								var defaultPort = fUseSSL ? 143 : 993;
-								Console.WriteLine($"Port ({defaultPort}):");
-								var strPort = Console.ReadLine().Trim();
-								int nPort;
-								if (!int.TryParse(strPort, out nPort))
-									nPort = defaultPort;
-
-								Console.WriteLine("User:");
-								var strUser = Console.ReadLine().Trim();
-
-								Console.WriteLine("Password:");
-								var strPass = Console.ReadLine().Trim();
-
-								Console.WriteLine("Inbox (INBOX):");
-								var strInbox = Console.ReadLine().Trim();
-								if (strInbox == "")
-									strInbox = "INBOX";
-
-								Console.WriteLine($"Spam ({strInbox}.Spam):");
-								var strSpam = Console.ReadLine().Trim();
-								if (strSpam == "")
-									strSpam = $"{strInbox}.Spam";
-
-								Console.WriteLine($"Unsure ({strInbox}.Unsure):");
-								var strUnsure = Console.ReadLine().Trim();
-								if (strUnsure == "")
-									strUnsure = $"{strInbox}.Unsure";
-
-								Console.WriteLine($"Spam Cutoff (0.93):");
-								var strSpamCutoff = Console.ReadLine().Trim();
-								float nSpamCutoff;
-								if (!float.TryParse(strSpam, out nSpamCutoff))
-									nSpamCutoff = 0.93f;
-
-								Console.WriteLine($"Ham Cutoff (0.2):");
-								var strHamCutoff = Console.ReadLine().Trim();
-								float nHamCutoff;
-								if (!float.TryParse(strHamCutoff, out nHamCutoff))
-									nHamCutoff = 0.2f;
-
-								var ai = Account.Create(
-										strName, strHost, strUser, strPass,
-										nPort, fUseSSL,
-										strInbox, strSpam, strUnsure,
-										nSpamCutoff, nHamCutoff
-										);
-								mapAccountInfos[ai.AccountId] = ai;
-								Trace.WriteLine($"CREATED {ai.AccountId}\t{ai.User}");
-							}
-							break;
-
-						case "stop":
-							foreach (var ai in ParseAccountInfos())
-							{
-								Trace.WriteLine($"STOPPING {ai.AccountId}\t{ai.User}");
-								ai.Stop(true);
-							}
-							break;
-
-						case "start":
-							foreach (var ai in ParseAccountInfos())
-							{
-								Trace.WriteLine($"STARTING {ai.AccountId}\t{ai.User}");
-								ai.Run();
-							}
-							break;
-
-						case "train":
-							{
-								RowIdType id = default(RowIdType);
-								if (rgParts.Length < 1 || !RowIdType.TryParse(rgParts[1], out id))
-								{
-									Trace.WriteLine($"syntax: train <id> [<folder> ...]");
-									break;
-								}
-
-								if (!mapAccountInfos.TryGetValue(id, out Account ai))
-								{
-									Trace.WriteLine($"error: account {ai} not found");
-									break;
-								}
-
-								var folders = rgParts.Skip(2).ToArray();
-								Trace.WriteLine($"TRAINING {ai.AccountId}\t{ai.User}");
-								ai.Train(folders);
-							}
-							break;
-
-						case "clean":
-							foreach (var ai in ParseAccountInfos())
-							{
-								Trace.WriteLine($"CLEANING {ai.AccountId}\t{ai.User}");
-								ai.Clean();
-							}
-							break;
-					}
-
-					Trace.WriteLine("DONE " + strCommand);
 				}
+
+				switch (strCommand)
+				{
+					default:
+						Trace.WriteLine($"{strCommand}: command not found");
+						continue;
+
+					case "accounts":
+						foreach (var ai in mapAccountInfos.OrderBy(p => p.Key).Select(p => p.Value))
+							Trace.WriteLine($"{ai.AccountId}\t: {ai.Status}\t{ai.User}");
+						break;
+
+					case "add":
+						{
+							Console.WriteLine("Name:");
+							var strName = Console.ReadLine().Trim();
+
+							Console.WriteLine("Host:");
+							var strHost = Console.ReadLine().Trim();
+
+							Console.WriteLine("SSL?");
+							var strSSL = Console.ReadLine().Trim();
+							var fUseSSL = new[] { "y", "1", "yes", "true" }.Contains(strSSL.ToLower());
+
+							var defaultPort = fUseSSL ? 143 : 993;
+							Console.WriteLine($"Port ({defaultPort}):");
+							var strPort = Console.ReadLine().Trim();
+							int nPort;
+							if (!int.TryParse(strPort, out nPort))
+								nPort = defaultPort;
+
+							Console.WriteLine("User:");
+							var strUser = Console.ReadLine().Trim();
+
+							Console.WriteLine("Password:");
+							var strPass = Console.ReadLine().Trim();
+
+							Console.WriteLine("Inbox (INBOX):");
+							var strInbox = Console.ReadLine().Trim();
+							if (strInbox == "")
+								strInbox = "INBOX";
+
+							Console.WriteLine($"Spam ({strInbox}.Spam):");
+							var strSpam = Console.ReadLine().Trim();
+							if (strSpam == "")
+								strSpam = $"{strInbox}.Spam";
+
+							Console.WriteLine($"Unsure ({strInbox}.Unsure):");
+							var strUnsure = Console.ReadLine().Trim();
+							if (strUnsure == "")
+								strUnsure = $"{strInbox}.Unsure";
+
+							Console.WriteLine($"Spam Cutoff (0.93):");
+							var strSpamCutoff = Console.ReadLine().Trim();
+							float nSpamCutoff;
+							if (!float.TryParse(strSpam, out nSpamCutoff))
+								nSpamCutoff = 0.93f;
+
+							Console.WriteLine($"Ham Cutoff (0.2):");
+							var strHamCutoff = Console.ReadLine().Trim();
+							float nHamCutoff;
+							if (!float.TryParse(strHamCutoff, out nHamCutoff))
+								nHamCutoff = 0.2f;
+
+							var ai = Account.Create(
+									strName, strHost, strUser, strPass,
+									nPort, fUseSSL,
+									strInbox, strSpam, strUnsure,
+									nSpamCutoff, nHamCutoff
+									);
+							mapAccountInfos[ai.AccountId] = ai;
+							Trace.WriteLine($"CREATED {ai.AccountId}\t{ai.User}");
+						}
+						break;
+
+					case "stop":
+						foreach (var ai in ParseAccountInfos())
+						{
+							Trace.WriteLine($"STOPPING {ai.AccountId}\t{ai.User}");
+							ai.Stop(true);
+						}
+						break;
+
+					case "start":
+						foreach (var ai in ParseAccountInfos())
+						{
+							Trace.WriteLine($"STARTING {ai.AccountId}\t{ai.User}");
+							ai.Run();
+						}
+						break;
+
+					case "train":
+						{
+							RowIdType id = default(RowIdType);
+							if (rgParts.Length < 1 || !RowIdType.TryParse(rgParts[1], out id))
+							{
+								Trace.WriteLine($"syntax: train <id> [<folder> ...]");
+								break;
+							}
+
+							if (!mapAccountInfos.TryGetValue(id, out Account ai))
+							{
+								Trace.WriteLine($"error: account {ai} not found");
+								break;
+							}
+
+							var folders = rgParts.Skip(2).ToArray();
+							Trace.WriteLine($"TRAINING {ai.AccountId}\t{ai.User}");
+							ai.Train(folders);
+						}
+						break;
+
+					case "clean":
+						foreach (var ai in ParseAccountInfos())
+						{
+							Trace.WriteLine($"CLEANING {ai.AccountId}\t{ai.User}");
+							ai.Clean();
+						}
+						break;
+				}
+
+				Trace.WriteLine("DONE " + strCommand);
 			}
 
 
@@ -526,8 +524,6 @@ namespace ImapBayes
 		int _cSpamTotal;
 		bool _fTraining;
 
-		CancellationToken _token;
-
 		public Account(RowIdType idAccount)
 		{
 			AccountId = idAccount;
@@ -648,8 +644,6 @@ namespace ImapBayes
 
 		public void Clean(CancellationToken token)
 		{
-			_token = token;
-
 			using (var imap = GetImapClient())
 			{
 				using (var imapSearch = GetImapClient())
@@ -699,8 +693,6 @@ namespace ImapBayes
 
 		void Train(CancellationToken token, string[] rgFolders)
 		{
-			_token = token;
-
 			_fTraining = true;
 			try
 			{
@@ -729,51 +721,29 @@ namespace ImapBayes
 			}
 		}
 
-		void Run(CancellationToken token)
+		public void Process(CancellationToken token, ImapClient imap)
 		{
-			_token = token;
-
-			void Process()
+			Trace.WriteLine($"{AccountId}:Process...");
+			using (var con = Program.GetConnection())
 			{
-				try
+				bool fChanged;
+				do
 				{
-					using (var imap = GetImapClient())
-					{
-						imap.HandleExists += (sender, count) => imap.StopIdle();
-						//imap.HandleFetch += (sender, count) => imap.StopIdle();
-
-						while (true)
-						{
-							if (_token.IsCancellationRequested)
-								return;
-
-							using (var con = Program.GetConnection())
-							{
-								bool fChanged;
-								do
-								{
-									fChanged = false;
-									fChanged |= ProcessFolder(con, imap, SpamFolder, true);
-									fChanged |= ProcessFolder(con, imap, InboxFolder, null);
-									//cChanged += ProcessFolder(con, "INBOX.old-messages", false);
-								}
-								while (fChanged);
-							}
+					fChanged = false;
+					fChanged |= ProcessFolder(con, imap, token, SpamFolder, true);
+					fChanged |= ProcessFolder(con, imap, token, InboxFolder, null);
+					//cChanged += ProcessFolder(con, "INBOX.old-messages", false);
+				}
+				while (fChanged);
+			}
 #if !NETCOREAPP1_1
-							System.Data.SqlClient.SqlConnection.ClearAllPools();
+			System.Data.SqlClient.SqlConnection.ClearAllPools();
 #endif
 
-							imap.SelectMailbox(InboxFolder);
-							imap.Idle();
-						}
-					}
-				}
-				catch (Exception e)
-				{
-					Trace.WriteLine(e);
-				}
-			};
+		}
 
+		void Run(CancellationToken token)
+		{
 #if false
 			_imap.NewMessage += (sender, evt) => {
 				Debug.WriteLine("NewMessage");
@@ -789,12 +759,31 @@ namespace ImapBayes
 			_imap.Idle();
 #endif
 
-			while (true)
+			while (!token.IsCancellationRequested)
 			{
-				Process();
-				if (_token.IsCancellationRequested)
+				try
 				{
-					return;
+					using (var imap = GetImapClient())
+					{
+						imap.HandleExists += (sender, count) => imap.StopIdle();
+						//imap.HandleFetch += (sender, count) => imap.StopIdle();
+
+						while (!token.IsCancellationRequested)
+						{
+							Process(token, imap);
+
+							imap.SelectMailbox(InboxFolder);
+
+							GC.Collect(2, GCCollectionMode.Forced, blocking: true);
+							GC.WaitForPendingFinalizers();
+
+							imap.Idle();
+						}
+					}
+				}
+				catch (Exception e)
+				{
+					Thread.Sleep(TimeSpan.FromSeconds(2));
 				}
 			}
 		}
@@ -834,7 +823,7 @@ namespace ImapBayes
 			return imap;
 		}
 
-		bool ProcessFolder(IDbConnection con, ImapClient imap, string strFolder, bool? fSpamFolder = null)
+		bool ProcessFolder(IDbConnection con, ImapClient imap, CancellationToken token, string strFolder, bool? fSpamFolder = null)
 		{
 			var fTraining = _fTraining;
 
@@ -885,7 +874,7 @@ namespace ImapBayes
 				{
 					foreach (var (start, end) in rgMessageIds.ToRanges(100))
 					{
-						if (_token.IsCancellationRequested)
+						if (token.IsCancellationRequested)
 							return false;
 
 						imap.GetMessages(start, end, true, true, false, (MailMessage msg) =>
@@ -958,7 +947,7 @@ namespace ImapBayes
 				foreach (var (start, end) in rgMessageIds.ToRanges(100))
 				{
 					//Trace.WriteLine($"range {start} -> {end} ({end-start+1})");
-					if (_token.IsCancellationRequested)
+					if (token.IsCancellationRequested)
 						return fChanged;
 
 					imapRead.GetMessages(start, end, true, false, false, (MailMessage msg) =>
