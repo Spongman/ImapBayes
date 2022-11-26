@@ -25,7 +25,7 @@ namespace AE.Net.Mail
 		public override bool CanRead => _stream.CanRead;
 		public override bool CanSeek => false;
 		public override bool CanWrite => false;
-		public override void Flush() {}
+		public override void Flush() { }
 
 		public override long Length { get; }
 		public override long Position
@@ -41,7 +41,7 @@ namespace AE.Net.Mail
 				return 0;
 
 			if (cbRemaining < int.MaxValue && count > cbRemaining)
-				count = (int) cbRemaining;
+				count = (int)cbRemaining;
 
 			int cbRead = _stream.Read(buffer, offset, count);
 			_cbRemaining -= cbRead;

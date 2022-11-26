@@ -30,7 +30,7 @@ namespace AE.Net.Mail
 
 		bool _fIdling;
 		string _idleTag;
-		static readonly int _idleTimeout = (int) TimeSpan.FromMinutes(29).TotalMilliseconds;
+		static readonly int _idleTimeout = (int)TimeSpan.FromMinutes(29).TotalMilliseconds;
 
 		string _fetchHeaders;
 
@@ -526,7 +526,7 @@ namespace AE.Net.Mail
 
 				if (stream != null)
 				{
-					msg.Size = (int) stream.Length;
+					msg.Size = (int)stream.Length;
 					//mail.Load(stream, headersonly);
 					msg.Parse(stream);
 				}

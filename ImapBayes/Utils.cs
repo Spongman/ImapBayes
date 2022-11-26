@@ -24,8 +24,8 @@ namespace ImapBayes
 			for (int i = 1; i < rg.Count; i++)
 			{
 				var value = rg[i];
-				var end = rg[i-1];
-				if (value != end + 1 || end-start > max)
+				var end = rg[i - 1];
+				if (value != end + 1 || end - start > max)
 				{
 					yield return (start, end);
 					start = value;
@@ -60,7 +60,7 @@ namespace ImapBayes
 
 		public static IEnumerable<TSource> Except<TSource>(this IEnumerable<TSource> @this, params TSource[] second)
 		{
-			return @this.Except((IEnumerable<TSource>) second);
+			return @this.Except((IEnumerable<TSource>)second);
 		}
 
 		public static IEnumerable<TSource> Append<TSource>(this IEnumerable<TSource> first, params TSource[] second)
@@ -78,7 +78,7 @@ namespace ImapBayes
 			long bits = BitConverter.DoubleToInt64Bits(d);
 			// Note that the shift is sign-extended, hence the test against -1 not 1
 			bool negative = bits < 0;
-			int exponent = (int) ((bits >> 52) & 0x7ffL);
+			int exponent = (int)((bits >> 52) & 0x7ffL);
 			long mantissa = bits & 0xfffffffffffffL;
 
 			if (exponent == 0)
@@ -103,7 +103,7 @@ namespace ImapBayes
 			{
 				/* Normalize */
 				while ((mantissa & 1) == 0)
-				{	/*  i.e., Mantissa is even */
+				{ /*  i.e., Mantissa is even */
 					mantissa >>= 1;
 					exponent++;
 				}
@@ -168,7 +168,7 @@ namespace ImapBayes
 				if (!_mapEntities.TryGetValue(match.Groups[1].Value, out int code))
 					return match.Value;
 
-				return "" + (char) code;
+				return "" + (char)code;
 			});
 		}
 

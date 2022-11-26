@@ -31,20 +31,20 @@ namespace ImapBayes
 		// IDbConnection
 		//
 
-		public static IDbCommand GetCommand (this IDbConnection @this, string strCmd, params IDbDataParameter [] rgParams)
+		public static IDbCommand GetCommand(this IDbConnection @this, string strCmd, params IDbDataParameter[] rgParams)
 		{
-			Contract.Requires (rgParams != null);
-			return GetCommand (@this, strCmd, CommandType.StoredProcedure, rgParams);
+			Contract.Requires(rgParams != null);
+			return GetCommand(@this, strCmd, CommandType.StoredProcedure, rgParams);
 		}
 
-		public static IDbCommand GetCommand (this IDbConnection @this, string strCmd, CommandType type, params IDbDataParameter [] rgParams)
+		public static IDbCommand GetCommand(this IDbConnection @this, string strCmd, CommandType type, params IDbDataParameter[] rgParams)
 		{
-			Contract.Requires (@this != null);
-			Contract.Requires (rgParams != null);
-			Contract.Ensures (Contract.Result<IDbCommand> () != null);
+			Contract.Requires(@this != null);
+			Contract.Requires(rgParams != null);
+			Contract.Ensures(Contract.Result<IDbCommand>() != null);
 
-			IDbCommand cmd = @this.CreateCommand ();
-			Contract.Assume (cmd != null);
+			IDbCommand cmd = @this.CreateCommand();
+			Contract.Assume(cmd != null);
 			cmd.CommandTimeout = 180;
 			cmd.CommandText = strCmd;
 			cmd.CommandType = type;
@@ -55,10 +55,10 @@ namespace ImapBayes
 		}
 
 
-		public static IDataReader ExecuteReader (this IDbConnection @this, string strCmd, params IDbDataParameter [] rgParams)
+		public static IDataReader ExecuteReader(this IDbConnection @this, string strCmd, params IDbDataParameter[] rgParams)
 		{
-			using (IDbCommand cmd = @this.GetCommand (strCmd, rgParams))
-				return cmd.ExecuteReader ();
+			using (IDbCommand cmd = @this.GetCommand(strCmd, rgParams))
+				return cmd.ExecuteReader();
 		}
 
 		public static IDataReader ExecuteReader(this IDbConnection @this, string strCmd, CommandType type, params IDbDataParameter[] rgParams)
@@ -79,53 +79,53 @@ namespace ImapBayes
 				return cmd.ExecuteRows();
 		}
 
-		public static void ExecuteNonQuery (this IDbConnection @this, string strCmd, CommandType type, params IDbDataParameter [] rgParams)
+		public static void ExecuteNonQuery(this IDbConnection @this, string strCmd, CommandType type, params IDbDataParameter[] rgParams)
 		{
-			using (IDbCommand cmd = @this.GetCommand (strCmd, type, rgParams))
-				cmd.ExecuteNonQuery ();
+			using (IDbCommand cmd = @this.GetCommand(strCmd, type, rgParams))
+				cmd.ExecuteNonQuery();
 		}
 
-		public static T ExecuteScalar<T> (this IDbConnection @this, string strCmd, CommandType type, params IDbDataParameter [] rgParams)
+		public static T ExecuteScalar<T>(this IDbConnection @this, string strCmd, CommandType type, params IDbDataParameter[] rgParams)
 		{
-			using (IDbCommand cmd = @this.GetCommand (strCmd, type, rgParams))
-				return (T) cmd.ExecuteScalar ();
+			using (IDbCommand cmd = @this.GetCommand(strCmd, type, rgParams))
+				return (T)cmd.ExecuteScalar();
 		}
 
-		public static T ExecuteReturn<T> (this IDbConnection @this, string strCmd, CommandType type, params IDbDataParameter [] rgParams)
+		public static T ExecuteReturn<T>(this IDbConnection @this, string strCmd, CommandType type, params IDbDataParameter[] rgParams)
 		{
-			using (IDbCommand cmd = @this.GetCommand (strCmd, type, rgParams))
-				return cmd.ExecuteReturn<T> ();
+			using (IDbCommand cmd = @this.GetCommand(strCmd, type, rgParams))
+				return cmd.ExecuteReturn<T>();
 		}
 
-		public static IDataReader ExecuteReaderReturn (this IDbConnection @this, string strCmd, CommandType type, out IDbDataParameter paramReturn, params IDbDataParameter [] rgParams)
+		public static IDataReader ExecuteReaderReturn(this IDbConnection @this, string strCmd, CommandType type, out IDbDataParameter paramReturn, params IDbDataParameter[] rgParams)
 		{
-			using (IDbCommand cmd = @this.GetCommand (strCmd, type, rgParams))
+			using (IDbCommand cmd = @this.GetCommand(strCmd, type, rgParams))
 			{
 				paramReturn = cmd.CreateParameter();
 				paramReturn.Direction = ParameterDirection.ReturnValue;
-				cmd.Parameters.Add (paramReturn);
-				return cmd.ExecuteReader ();
+				cmd.Parameters.Add(paramReturn);
+				return cmd.ExecuteReader();
 			}
 		}
 
-		public static void ExecuteNonQuery (this IDbConnection @this, string strCmd, params IDbDataParameter [] rgParams)
+		public static void ExecuteNonQuery(this IDbConnection @this, string strCmd, params IDbDataParameter[] rgParams)
 		{
-			@this.ExecuteNonQuery (strCmd, CommandType.StoredProcedure, rgParams);
+			@this.ExecuteNonQuery(strCmd, CommandType.StoredProcedure, rgParams);
 		}
 
-		public static T ExecuteScalar<T> (this IDbConnection @this, string strCmd, params IDbDataParameter [] rgParams)
+		public static T ExecuteScalar<T>(this IDbConnection @this, string strCmd, params IDbDataParameter[] rgParams)
 		{
-			return @this.ExecuteScalar<T> (strCmd, CommandType.StoredProcedure, rgParams);
+			return @this.ExecuteScalar<T>(strCmd, CommandType.StoredProcedure, rgParams);
 		}
 
-		public static T ExecuteReturn<T> (this IDbConnection @this, string strCmd, params IDbDataParameter [] rgParams)
+		public static T ExecuteReturn<T>(this IDbConnection @this, string strCmd, params IDbDataParameter[] rgParams)
 		{
-			return @this.ExecuteReturn<T> (strCmd, CommandType.StoredProcedure, rgParams);
+			return @this.ExecuteReturn<T>(strCmd, CommandType.StoredProcedure, rgParams);
 		}
 
 		public static IDataReader ExecuteReaderReturn(this IDbConnection @this, string strCmd, out IDbDataParameter paramReturn, params IDbDataParameter[] rgParams)
 		{
-			return @this.ExecuteReaderReturn (strCmd, CommandType.StoredProcedure, out paramReturn, rgParams);
+			return @this.ExecuteReaderReturn(strCmd, CommandType.StoredProcedure, out paramReturn, rgParams);
 		}
 
 
@@ -177,11 +177,11 @@ namespace ImapBayes
 		{
 			using (IDbCommand cmd = @this.GetCommand(strCmd, type, rgParams))
 			{
-			#if DEBUG
+#if DEBUG
 				Trace.WriteLine(strCmd);
 				foreach (var p in rgParams)
 					Trace.WriteLine($"{p.ParameterName} = ({p.DbType}) {p.Value}");
-			#endif
+#endif
 				cmd.ExecuteNonQuery();
 			}
 		}
@@ -189,7 +189,7 @@ namespace ImapBayes
 		public static T ExecuteScalar<T>(this IDbTransaction @this, string strCmd, CommandType type, params IDbDataParameter[] rgParams)
 		{
 			using (IDbCommand cmd = @this.GetCommand(strCmd, type, rgParams))
-				return (T) cmd.ExecuteScalar();
+				return (T)cmd.ExecuteScalar();
 		}
 
 		public static T ExecuteReturn<T>(this IDbTransaction @this, string strCmd, CommandType type, params IDbDataParameter[] rgParams)
@@ -241,24 +241,24 @@ namespace ImapBayes
 			}
 		}
 
-		public static T ExecuteReturn<T> (this IDbCommand @this)
+		public static T ExecuteReturn<T>(this IDbCommand @this)
 		{
-			Contract.Requires (@this != null);
-			Contract.Requires (@this.Parameters != null);
+			Contract.Requires(@this != null);
+			Contract.Requires(@this.Parameters != null);
 
-			IDbDataParameter param = @this.CreateParameter ();
+			IDbDataParameter param = @this.CreateParameter();
 			param.Direction = ParameterDirection.ReturnValue;
-			@this.Parameters.Add (param);
-			@this.ExecuteNonQuery ();
+			@this.Parameters.Add(param);
+			@this.ExecuteNonQuery();
 
-			Contract.Assume (param.Value != null);
-			return (T) param.Value;
+			Contract.Assume(param.Value != null);
+			return (T)param.Value;
 		}
 
-		public static T ExecuteScalar<T> (this IDbCommand @this)
+		public static T ExecuteScalar<T>(this IDbCommand @this)
 		{
-			object value = @this.ExecuteScalar ();
-			return (T) value;
+			object value = @this.ExecuteScalar();
+			return (T)value;
 		}
 
 		public static T? GetNullable<T>(this IDataReader @this, int i)
@@ -274,17 +274,17 @@ namespace ImapBayes
 				{
 					case 0:
 					case 0L:
-						return (T?) (object) false;
+						return (T?)(object)false;
 					case 1:
 					case 1L:
-						return (T?) (object) true;
+						return (T?)(object)true;
 				}
 			}
 
-			return (T?) value;
+			return (T?)value;
 		}
 
-		
+
 		public static T? GetNullable<T>(this IDataReader @this, string s)
 			where T : struct
 		{
@@ -304,7 +304,7 @@ namespace ImapBayes
 		public static long GetInt64(this IDataReader @this, string s) { return @this.GetInt64(@this.GetOrdinal(s)); }
 		public static string GetString(this IDataReader @this, string s) { return @this.GetString(@this.GetOrdinal(s)); }
 		public static object GetValue(this IDataReader @this, string s) { return @this.GetValue(@this.GetOrdinal(s)); }
-		public static T GetValue<T>(this IDataReader @this, string s) { return (T) @this.GetValue(@this.GetOrdinal(s)); }
+		public static T GetValue<T>(this IDataReader @this, string s) { return (T)@this.GetValue(@this.GetOrdinal(s)); }
 		public static bool IsDBNull(this IDataReader @this, string s) { return @this.IsDBNull(@this.GetOrdinal(s)); }
 	}
 }

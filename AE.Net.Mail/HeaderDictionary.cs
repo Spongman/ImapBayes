@@ -29,7 +29,7 @@ namespace AE.Net.Mail
 				foreach (var rx in rxDates)
 				{
 					var match = rx.Matches(this["Received"].RawValue ?? "")
-					  .Cast<Match>().LastOrDefault();
+						.Cast<Match>().LastOrDefault();
 					if (match != null)
 					{
 						value = match.Value.ToNullDate();

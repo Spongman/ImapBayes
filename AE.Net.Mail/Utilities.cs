@@ -201,7 +201,7 @@ namespace AE.Net.Mail
 						break;
 					}
 
-					mem.WriteByte((byte) ch);
+					mem.WriteByte((byte)ch);
 				}
 
 				if (!fRead)
@@ -468,7 +468,7 @@ namespace AE.Net.Mail
 
 					if (byte.TryParse(value.Substring(i + 1, 2), NumberStyles.HexNumber, null, out b))
 					{
-						data[n] = (byte) b;
+						data[n] = (byte)b;
 						n++;
 						i += 2;
 					}

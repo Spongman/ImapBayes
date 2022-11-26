@@ -36,7 +36,7 @@ namespace AE.Net.Mail.Imap
 			Flags = flags.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
 		}
 
-		public static string GetParentName (string name, string delimiter)
+		public static string GetParentName(string name, string delimiter)
 		{
 			int ich = name.LastIndexOf(delimiter);
 			if (ich < 0)

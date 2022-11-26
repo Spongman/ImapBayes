@@ -13,6 +13,7 @@ namespace AE.Net.Mail
 		public ImapClientException(string message, Exception inner) : base(message, inner) { }
 
 		protected ImapClientException(System.Runtime.Serialization.SerializationInfo info,
-				System.Runtime.Serialization.StreamingContext context) { }
+				System.Runtime.Serialization.StreamingContext context)
+		{ }
 	}
 }

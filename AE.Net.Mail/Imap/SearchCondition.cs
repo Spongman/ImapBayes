@@ -114,7 +114,7 @@ namespace AE.Net.Mail
 			{
 				if (value is DateTime)
 				{
-					value = ((DateTime) value).GetRFC2060Date().QuoteString();
+					value = ((DateTime)value).GetRFC2060Date().QuoteString();
 				}
 				else
 				{
@@ -168,7 +168,7 @@ namespace AE.Net.Mail
 			_others = others;
 		}
 
-		public override string ToString() => string.Join(" ", (object[]) _others);
+		public override string ToString() => string.Join(" ", (object[])_others);
 
 		internal override SearchCondition And(params SearchCondition[] others) => new AndSearchCondition(_others.Concat(others).ToArray());
 	}

@@ -68,9 +68,9 @@ namespace AE.Net.Mail
 				value = Utilities.DecodeQuotedPrintable(value, Encoding);
 			}
 			else if (ContentTransferEncoding.Is("base64")
-				//only decode the content if it is a text document
-						  && ContentType.StartsWith("text/", StringComparison.OrdinalIgnoreCase)
-						  && Utilities.IsValidBase64String(ref value))
+							//only decode the content if it is a text document
+							&& ContentType.StartsWith("text/", StringComparison.OrdinalIgnoreCase)
+							&& Utilities.IsValidBase64String(ref value))
 			{
 				var data = Convert.FromBase64String(value);
 				using (var mem = new System.IO.MemoryStream(data))

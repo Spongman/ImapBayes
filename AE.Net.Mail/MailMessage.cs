@@ -29,7 +29,7 @@ namespace AE.Net.Mail
 				Body = msg.Body,
 				IsBodyHtml = msg.ContentType.Contains("html"),
 				From = msg.From,
-				Priority = (System.Net.Mail.MailPriority) msg.Importance
+				Priority = (System.Net.Mail.MailPriority)msg.Importance
 			};
 
 			foreach (var a in msg.Bcc)
@@ -308,7 +308,7 @@ foreach (var a in msg.AlternateViews)
 				txt.WriteLine("{0}: {1}", header.Key, header.Value);
 
 			if (Importance != MailPriority.Normal)
-				txt.WriteLine("Importance: {0}", (int) Importance);
+				txt.WriteLine("Importance: {0}", (int)Importance);
 
 			txt.WriteLine("Subject: {0}", Subject);
 			txt.WriteLine();

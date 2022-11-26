@@ -6,8 +6,10 @@ using System.Collections.Specialized;
 using System.Runtime.Serialization;
 using System.Collections.ObjectModel;
 
-namespace AE.Net.Mail.Imap {
-	public class Namespaces {
+namespace AE.Net.Mail.Imap
+{
+	public class Namespaces
+	{
 		readonly Collection<Namespace> _servernamespace = new Collection<Namespace>();
 		readonly Collection<Namespace> _usernamespace = new Collection<Namespace>();
 		readonly Collection<Namespace> _sharednamespace = new Collection<Namespace>();
@@ -17,8 +19,10 @@ namespace AE.Net.Mail.Imap {
 		public virtual Collection<Namespace> SharedNamespace => this._sharednamespace;
 	}
 
-	public class Namespace {
-		public Namespace(string prefix, string delimiter) {
+	public class Namespace
+	{
+		public Namespace(string prefix, string delimiter)
+		{
 			Prefix = prefix;
 			Delimiter = delimiter;
 		}
