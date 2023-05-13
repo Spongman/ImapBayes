@@ -95,31 +95,23 @@ namespace AE.Net.Mail
 					break;
 
 				//Debug.Assert(response.StartsWith("* "));
+				Debug.WriteLine($"response: {response}");
 
 				Match m;
-				if ((m = _regExpunge.Match(response)).Success)
+				if (this.HandleExpunge != null && (m = _regExpunge.Match(response)).Success)
 				{
-					if (this.HandleExpunge != null)
-					{
-						var id = int.Parse(m.Groups[1].Value);
-						this.HandleExpunge.Invoke(this, id);
-					}
+					var id = int.Parse(m.Groups[1].Value);
+					this.HandleExpunge.Invoke(this, id);
 				}
-				else if ((m = _regExists.Match(response)).Success)
+				else if (this.HandleExists != null && (m = _regExists.Match(response)).Success)
 				{
-					if (this.HandleExists != null)
-					{
-						var count = int.Parse(m.Groups[1].Value);
-						this.HandleExists.Invoke(this, count);
-					}
+					var count = int.Parse(m.Groups[1].Value);
+					this.HandleExists.Invoke(this, count);
 				}
-				else if ((m = _regFetch.Match(response)).Success)
+				else if (this.HandleFetch != null && (m = _regFetch.Match(response)).Success)
 				{
-					if (this.HandleFetch != null)
-					{
-						var id = int.Parse(m.Groups[1].Value);
-						this.HandleFetch.Invoke(this, id);
-					}
+					var id = int.Parse(m.Groups[1].Value);
+					this.HandleFetch.Invoke(this, id);
 				}
 			}
 
@@ -129,12 +121,14 @@ namespace AE.Net.Mail
 
 		public void StopIdle()
 		{
+			Debug.WriteLine($"StopIdle {_fIdling}");
 			Debug.Assert(_fIdling);
 			_fIdling = false;
 		}
 
 		protected virtual void IdlePause()
 		{
+			//Debug.WriteLine($"IdlePause {_fIdling}");
 			if (_fIdling)
 			{
 				CheckConnectionStatus();
@@ -149,6 +143,7 @@ namespace AE.Net.Mail
 
 		protected virtual void IdleResume()
 		{
+//			Debug.WriteLine($"IdleResume {_fIdling}");
 			if (_fIdling)
 			{
 				IdleResumeCommand();
@@ -255,13 +250,7 @@ namespace AE.Net.Mail
 			IdleResume();
 		}
 
-		private bool HasEvents
-		{
-			get
-			{
-				return _MessageDeleted != null || _NewMessage != null;
-			}
-		}
+		private bool HasEvents => _MessageDeleted != null || _NewMessage != null;
 
 		protected virtual void IdleStop()
 		{
@@ -276,6 +265,7 @@ namespace AE.Net.Mail
 			}
 		}
 
+#if false
 		private void WatchIdleQueue()
 		{
 			try
@@ -311,6 +301,7 @@ namespace AE.Net.Mail
 			}
 			catch (Exception) { }
 		}
+#endif
 
 		protected override void OnDispose()
 		{
@@ -440,6 +431,15 @@ namespace AE.Net.Mail
 		}
 
 		readonly Regex _reCopyUid = new Regex("COPYUID ([0-9]+) ([0-9,:]+) ([0-9,:]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+		public virtual void MoveMessage(long uid, string folderName)
+		{
+			if (!this.Supports("MOVE"))
+				return;
+
+			CheckMailboxSelected();
+			CheckTaggedCommand(string.Format("UID MOVE " + uid + " " + folderName.QuoteString()));
+		}
 
 		public virtual void MoveMessage(AE.Net.Mail.MailMessage msg, string folderName)
 		{

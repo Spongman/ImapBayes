@@ -1,4 +1,4 @@
-#define SQLITE
+﻿#define SQLITE
 
 using System;
 using System.Collections.Concurrent;
@@ -138,6 +138,7 @@ namespace ImapBayes
 							var idAccount = reader.GetValue<RowIdType>("id");
 
 							var ai = new Account(idAccount);
+							Trace.WriteLine($"add account {idAccount}");
 
 							mapAccountInfos[idAccount] = ai;
 						}
@@ -149,8 +150,18 @@ namespace ImapBayes
 			if (!Debugger.IsAttached)
 			{
 				Trace.WriteLine("starting...");
+				using (var tokenSource = new CancellationTokenSource())
+				{
 				foreach (var ai in mapAccountInfos.Values)
 				{
+						Trace.WriteLine($"PROCESS {ai.AccountId}\t{ai.User}");
+						using (var imap = ai.GetImapClient())
+							ai.Process(tokenSource.Token, imap);
+					}
+				}
+				foreach (var ai in mapAccountInfos.Values)
+				{
+					Trace.WriteLine($"START {ai.AccountId}\t{ai.User}");
 					ai.Run();
 				}
 			}
@@ -173,8 +184,12 @@ namespace ImapBayes
 					break;
 				}
 
-				var rgParts = strLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-				if (rgParts.Length == 0)
+				var reSplit = new Regex("\\s*(?:\"([^\"]*)\"|(\\S*))");
+				var rgParts = reSplit.Matches(strLine).Select(m => m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value).ToList();
+				foreach (var part in rgParts)
+					Debug.WriteLine($"part: {part}");
+				//var rgParts = strLine.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+				if (rgParts.Count() == 0)
 					continue;
 
 				var strCommand = rgParts[0].ToLower();
@@ -182,7 +197,7 @@ namespace ImapBayes
 				IEnumerable<Account> ParseAccountInfos()
 				{
 					IEnumerable<RowIdType> rgAccountIds;
-					if (rgParts.Length == 1)
+					if (rgParts.Count() == 1)
 						rgAccountIds = mapAccountInfos.Keys;
 					else
 						rgAccountIds = rgParts.Skip(1).Select(str => RowIdType.TryParse(str, out RowIdType value) ? value : default(RowIdType?)).Where(v => v != null).Select(v => v.Value);
@@ -289,9 +304,9 @@ namespace ImapBayes
 					case "train":
 						{
 							RowIdType id = default(RowIdType);
-							if (rgParts.Length < 1 || !RowIdType.TryParse(rgParts[1], out id))
+							if (rgParts.Count() < 1 || !RowIdType.TryParse(rgParts[1], out id))
 							{
-								Trace.WriteLine($"syntax: train <id> [<folder> ...]");
+								Trace.WriteLine($"syntax: {strCommand} <id> [<folder> ...]");
 								break;
 							}
 
@@ -312,6 +327,92 @@ namespace ImapBayes
 						{
 							Trace.WriteLine($"CLEANING {ai.AccountId}\t{ai.User}");
 							ai.Clean();
+						}
+						break;
+
+					case "exec":
+						{
+							RowIdType id = default(RowIdType);
+							if (rgParts.Count()  < 1 || !RowIdType.TryParse(rgParts[1], out id))
+							{
+								Trace.WriteLine($"syntax: {strCommand} <id> [<folder> ...]");
+								break;
+							}
+							if (!mapAccountInfos.TryGetValue(id, out Account ai))
+							{
+								Trace.WriteLine($"error: account {ai} not found");
+								break;
+							}
+
+							using (var imap = ai.GetImapClient(rgParts[2]))
+							{
+								imap.SendTaggedCommand(
+									rgParts.Skip(3).Join(" ")
+								);
+							}
+						}
+						break;
+					
+					case "move":
+						{
+							RowIdType id = default(RowIdType);
+							if (rgParts.Count()  < 1 || !RowIdType.TryParse(rgParts[1], out id))
+							{
+								Trace.WriteLine($"syntax: {strCommand} <id> [<folder> ...]");
+								break;
+							}
+							if (!mapAccountInfos.TryGetValue(id, out Account ai))
+							{
+								Trace.WriteLine($"error: account {ai} not found");
+								break;
+							}
+
+							var from = rgParts[2];
+							var search = rgParts[3];
+							var to = rgParts[4];
+
+							using (var imap = ai.GetImapClient(from))
+							{
+								if (!imap.Supports("MOVE"))
+								{
+									Trace.WriteLine("MOVE not supported");
+									break;
+								}
+
+								var msgIds = imap.Search(search, true);
+								Debug.WriteLine($"found {msgIds.Count()} messages");
+								foreach (var uid in msgIds)
+									imap.MoveMessage(uid, to);
+							}
+						}
+						break;
+
+					case "score":
+						{
+							RowIdType id = default(RowIdType);
+							if (rgParts.Count() < 1 || !RowIdType.TryParse(rgParts[1], out id))
+							{
+								Trace.WriteLine($"syntax: {strCommand} <id> [<folder> ...]");
+								break;
+							}
+							if (!mapAccountInfos.TryGetValue(id, out Account ai))
+							{
+								Trace.WriteLine($"error: account {ai} not found");
+								break;
+							}
+
+							var folder = rgParts[2];
+							using (var imap = ai.GetImapClient(folder))
+							using (var con = GetConnection())
+							{
+								var cts = new CancellationTokenSource();
+								ai.ProcessFolder(con, imap, cts.Token, folder, null, true);
+								//for (int i = 3; i < rgParts.Count(); i ++) {
+								//	long msgId = long.Parse(rgParts[i]);
+								//	var msg = imap.GetMessage(msgId, false, false);
+								//	ai.ScoreMessage(con, imap, msg);
+								//}
+							}
 						}
 						break;
 				}
@@ -555,6 +656,9 @@ namespace ImapBayes
 					_cHamTotal = reader.GetInt32("cHam");
 					_spamCutoff = reader.GetFloat("nSpamCutoff");
 					_hamCutoff = reader.GetFloat("nHamCutoff");
+
+					//if (AccountId == 2)
+					//	_cHamTotal = 3000;
 				}
 			}
 		}
@@ -623,7 +727,18 @@ namespace ImapBayes
 		public void Clean()
 		{
 			Debug.Assert(!IsRunning);
-			this.Task = Task.Run(() => this.Clean(this.TokenSource.Token));
+			this.Task = Task.Run(() =>
+			{
+				try
+				{
+					this.Clean(this.TokenSource.Token);
+				}
+				catch (Exception e)
+				{
+					Trace.WriteLine(e);
+				}
+			}
+			);
 		}
 
 
@@ -641,6 +756,12 @@ namespace ImapBayes
 
 		public string Status => IsRunning ? "RUNNING" : "STOPPED";
 
+		struct SpamFlags
+		{
+			public const string Spam = "spam";
+			public const string Ham = "ham";
+			public const string Trained = "trained";
+		}
 
 		public void Clean(CancellationToken token)
 		{
@@ -656,11 +777,12 @@ namespace ImapBayes
 						imapSearch.SelectMailbox(strFolder);
 
 						var rgMessageIds = imapSearch.Search(SearchSpam || SearchHam || SearchTrained).ToList();
+						Trace.WriteLine($"cleaning {rgMessageIds.Count} messages");
 
 						foreach (var (start, end) in rgMessageIds.ToRanges(100))
 						{
 							var rgMessages = imapSearch.GetMessages(start, end, true, true, false);
-							imap.RemoveFlags(new[] { "spam", "ham", "trained" }, rgMessages.ToArray());
+							imap.RemoveFlags(new[] { SpamFlags.Spam, SpamFlags.Ham, SpamFlags.Trained }, rgMessages.ToArray());
 						}
 					}
 
@@ -671,14 +793,16 @@ namespace ImapBayes
 
 				using (var con = Program.GetConnection())
 				{
+					Trace.WriteLine($"trimming tblTokenCounts");
 					con.ExecuteNonQuery(
-							"DELETE tblTokenCounts WHERE idAccount = @idAccount",
+							"DELETE FROM tblTokenCounts WHERE idAccount = @idAccount",
 							CommandType.Text,
 							Program.DbFactory.CreateParameter("@idAccount", AccountId)
 							);
 
+					Trace.WriteLine($"trimming tblMessages");
 					con.ExecuteNonQuery(
-							"DELETE tblMessages WHERE idAccount = @idAccount",
+							"DELETE FROM tblMessages WHERE idAccount = @idAccount",
 							CommandType.Text,
 							Program.DbFactory.CreateParameter("@idAccount", AccountId)
 							);
@@ -687,6 +811,7 @@ namespace ImapBayes
 					_cSpamTotal = 0;
 					SaveSpanCounts(con);
 				}
+				Trace.WriteLine($"done cleaning");
 			}
 		}
 
@@ -702,14 +827,18 @@ namespace ImapBayes
 					{
 						if (rgFolders == null || rgFolders.Length == 0)
 						{
-							ProcessFolder(con, imap, SpamFolder, true);
-							ProcessFolder(con, imap, InboxFolder, false);
+							Trace.WriteLine($"training SPAM " + SpamFolder);
+							ProcessFolder(con, imap, token, SpamFolder, true);
+
+							Trace.WriteLine($"training INBOX " + InboxFolder);
+							ProcessFolder(con, imap, token, InboxFolder, false);
 						}
 						else
 						{
 							foreach (var folder in rgFolders)
 							{
-								ProcessFolder(con, imap, folder, false);
+								Trace.WriteLine($"training INBOX " + folder);
+								ProcessFolder(con, imap, token, folder, false);
 							}
 						}
 					}
@@ -732,7 +861,7 @@ namespace ImapBayes
 					fChanged = false;
 					fChanged |= ProcessFolder(con, imap, token, SpamFolder, true);
 					fChanged |= ProcessFolder(con, imap, token, InboxFolder, null);
-					//cChanged += ProcessFolder(con, "INBOX.old-messages", false);
+					//fChanged |= ProcessFolder(con, imap, token, "INBOX.old-messages", null);
 				}
 				while (fChanged);
 			}
@@ -809,9 +938,9 @@ namespace ImapBayes
 
 		static readonly double Ln2 = Math.Log(2);
 
-		static readonly SearchCondition SearchHam = SearchCondition.Keyword("ham");
-		static readonly SearchCondition SearchSpam = SearchCondition.Keyword("spam");
-		static readonly SearchCondition SearchTrained = SearchCondition.Keyword("trained");
+		static readonly SearchCondition SearchHam = SearchCondition.Keyword(SpamFlags.Ham);
+		static readonly SearchCondition SearchSpam = SearchCondition.Keyword(SpamFlags.Spam);
+		static readonly SearchCondition SearchTrained = SearchCondition.Keyword(SpamFlags.Trained);
 
 		public ImapClient GetImapClient(string strFolder = null)
 		{
@@ -823,10 +952,18 @@ namespace ImapBayes
 			return imap;
 		}
 
-		bool ProcessFolder(IDbConnection con, ImapClient imap, CancellationToken token, string strFolder, bool? fSpamFolder = null)
+		public double ScoreMessage(IDbConnection con, ImapClient imap, MailMessage msg)
+		{
+			using (var transaction = con.BeginTransaction())
+			{
+				var rgMessageTokens = GetMessageTokens(transaction, msg).Select(p => p.token).ToArray();
+				return ClassifyTokenCounts(FetchTokenCounts(transaction, rgMessageTokens));
+			}
+		}
+
+		public bool ProcessFolder(IDbConnection con, ImapClient imap, CancellationToken token, string strFolder, bool? fSpamFolder = null, bool readOnly = false)
 		{
 			var fTraining = _fTraining;
-
 
 			var mbox = imap.SelectMailbox(strFolder);
 			if (mbox == null)
@@ -839,17 +976,15 @@ namespace ImapBayes
 			if (fTraining)
 			{
 				searchFlag = SearchCondition.All;
-				if (fSpamFolder == null)
-					fSpamFolder = false;
 			}
 			else
 			{
 				switch (fSpamFolder)
 				{
-					case null:
+					case null: // InboxFolder
 						searchFlag = !SearchHam || SearchSpam;
 						break;
-					case true:
+					case true:	 // SpamFolder
 						searchFlag = !SearchSpam;
 						break;
 					case false:
@@ -862,13 +997,12 @@ namespace ImapBayes
 			var cMessages = rgMessageIds.Count;
 
 			if (fTraining)
+			{
 				Trace.WriteLine($"ProcessFolder: {strFolder}  ({cMessages} found)");
 
-			if (fTraining && fSpamFolder == null)
-				fSpamFolder = false;
+				if (fSpamFolder == null)
+					fSpamFolder = false;
 
-			if (fTraining)
-			{
 				var rgNewMessageIds = new List<long>();
 				using (var imapRead = GetImapClient(strFolder))
 				{
@@ -980,9 +1114,25 @@ namespace ImapBayes
 
 									if (!fNew || fTraining)
 									{
-										if (mi.IsSpam != (fSpamFolder == true))
+										var oldIsSpam = mi.IsSpam;
+										var newIsSpam = fSpamFolder ?? false;
+
+										//if (mi.IsSpam != (fSpamFolder == true))
+										//if (mi.IsSpam != (fSpamFolder ?? false))
+										if (oldIsSpam != newIsSpam)
 										{
-											Trace.WriteLine(string.Format("{0}:{1}\t ({2}/{3}) OLD {4} : {5}", AccountId, strFolder, iMessage, cMessages, MessageInfo.GetSpamText(fSpamFolder == true), msg.Subject));
+											Trace.WriteLine(string.Format("{0}:{1}\t ({2}/{3}) OLD {4}->{5} : {6}"
+												, AccountId
+												, strFolder
+												, iMessage
+												, cMessages
+												, MessageInfo.GetSpamText(oldIsSpam)
+												, MessageInfo.GetSpamText(newIsSpam)
+												, msg.Subject
+											));
+
+											if (readOnly)	// READONLY
+												return;
 
 											foreach (var tr in rgMessageTokens)
 											{
@@ -1002,13 +1152,13 @@ namespace ImapBayes
 
 												if (fExists && mi.IsTrained)
 												{
-													if (mi.IsSpam == false && cHam > 0)
+													if (oldIsSpam == false && cHam > 0)
 														cHam--;
-													if (mi.IsSpam == true && cSpam > 0)
+													if (oldIsSpam == true && cSpam > 0)
 														cSpam--;
 												}
 
-												if (fSpamFolder == true)
+												if (newIsSpam)
 													cSpam++;
 												else
 													cHam++;
@@ -1031,13 +1181,13 @@ namespace ImapBayes
 
 											if (!fNew)
 											{
-												if (mi.IsSpam == false)
+												if (oldIsSpam == false)
 													System.Threading.Interlocked.Decrement(ref _cHamTotal);
-												if (mi.IsSpam == true)
+												if (oldIsSpam == true)
 													System.Threading.Interlocked.Decrement(ref _cSpamTotal);
 											}
 
-											if (fSpamFolder == true)
+											if (newIsSpam)
 												System.Threading.Interlocked.Increment(ref _cSpamTotal);
 											else
 												System.Threading.Interlocked.Increment(ref _cHamTotal);
@@ -1045,30 +1195,47 @@ namespace ImapBayes
 											SaveSpanCounts(con);
 
 											mi.IsTrained = true;
-											mi.IsSpam = fSpamFolder == true;
+											mi.IsSpam = newIsSpam;
+										}
+										else
+										{
+											if (readOnly)
+												return;
 										}
 
 										SetMessageFlags();
 									}
 									else
 									{
+										// new message
 										var spamScore = ClassifyTokenCounts(FetchTokenCounts(transaction, rgMessageTokens));
 										mi.Score = (float)spamScore;
+										mi.IsSpam = null;	// NOP
 
-										bool? fSpam = null;
-										if (spamScore < _hamCutoff)
-											fSpam = false;
-										else if (spamScore > _spamCutoff)
-											fSpam = true;
+										if (fSpamFolder == null)
+										{
+											// classification is determined by message contents:
+											if (spamScore < _hamCutoff)
+												mi.IsSpam = false;
+											else if (spamScore > _spamCutoff)
+												mi.IsSpam = true;
+										}
+										else
+										{
+											// classification is determined by location:
+											mi.IsSpam = fSpamFolder;
+										}
 
-										Trace.WriteLine(string.Format("{0}:{1}\t ({2}/{3}) NEW {4}({5:N2}) : {6}", AccountId, strFolder, iMessage, cMessages, MessageInfo.GetSpamText(fSpam), spamScore, msg.Subject));
+										Trace.WriteLine(string.Format("{0}:{1}\t ({2}/{3}) NEW {4}({5:N2}) : {6}", AccountId, strFolder, iMessage, cMessages, MessageInfo.GetSpamText(mi.IsSpam), spamScore, msg.Subject));
 
-										mi.IsSpam = fSpam;
+										if (readOnly)	// READONLY
+											return;
+
 										SetMessageFlags();
 
 										if (fSpamFolder == null)
 										{
-											switch (fSpam)
+											switch (mi.IsSpam)
 											{
 												case true:  // SPAM
 													if (strFolder != SpamFolder)
@@ -1090,36 +1257,37 @@ namespace ImapBayes
 										}
 									}
 
+									IDbCommand cmd;
 									if (fNew)
 									{
-										((IDbDataParameter)cmdAddMessage.Parameters["@strId"]).Value = mi.MessageId;
-										((IDbDataParameter)cmdAddMessage.Parameters["@strSubject"]).Value = mi.Subject.Substring(0, Math.Min(200, mi.Subject.Length));
-										((IDbDataParameter)cmdAddMessage.Parameters["@fSpam"]).Value = (object)mi.IsSpam ?? DBNull.Value;
-										((IDbDataParameter)cmdAddMessage.Parameters["@fTrained"]).Value = mi.IsTrained;
-										((IDbDataParameter)cmdAddMessage.Parameters["@nScore"]).Value = (object)mi.Score ?? DBNull.Value;
-										cmdAddMessage.ExecuteNonQuery();
+										cmd = cmdAddMessage;
+										cmd.SetParameter("@strId", mi.MessageId);
+										cmd.SetParameter("@strSubject", mi.Subject.Substring(0, Math.Min(200, mi.Subject.Length)));
+
 									}
 									else
 									{
-										((IDbDataParameter)cmdUpdateMessage.Parameters["@id"]).Value = mi.Id;
-										((IDbDataParameter)cmdUpdateMessage.Parameters["@fSpam"]).Value = (object)mi.IsSpam ?? DBNull.Value;
-										((IDbDataParameter)cmdUpdateMessage.Parameters["@fTrained"]).Value = mi.IsTrained;
-										((IDbDataParameter)cmdUpdateMessage.Parameters["@nScore"]).Value = (object)mi.Score ?? DBNull.Value;
-										cmdUpdateMessage.ExecuteNonQuery();
+										cmd = cmdUpdateMessage;
+										cmd.SetParameter("@id", mi.Id);
 									}
+									cmd.SetParameter("@fSpam", (object)mi.IsSpam ?? DBNull.Value);
+									cmd.SetParameter("@fTrained", mi.IsTrained);
+									cmd.SetParameter("@nScore", (object)mi.Score ?? DBNull.Value);
+									cmd.ExecuteNonQuery();
+
 
 									void SetMessageFlags()
 									{
 										switch (mi.IsSpam)
 										{
 											case true:
-												fChanged |= imap.AddFlags(new[] { "spam" }, msg);
-												fChanged |= imap.RemoveFlags(new[] { "ham" }, msg);
+												fChanged |= imap.AddFlags(new[] { SpamFlags.Spam }, msg);
+												fChanged |= imap.RemoveFlags(new[] { SpamFlags.Ham }, msg);
 												break;
 											default:
 											case false:
-												fChanged |= imap.AddFlags(new[] { "ham" }, msg);
-												fChanged |= imap.RemoveFlags(new[] { "spam" }, msg);
+												fChanged |= imap.AddFlags(new[] { SpamFlags.Ham }, msg);
+												fChanged |= imap.RemoveFlags(new[] { SpamFlags.Spam }, msg);
 												break;
 										}
 									}

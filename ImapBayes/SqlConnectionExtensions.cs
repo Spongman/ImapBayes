@@ -231,6 +231,10 @@ namespace ImapBayes
 
 
 
+		public static void SetParameter(this IDbCommand @this, string key, object? value)
+		{
+			((IDbDataParameter)@this.Parameters[key]).Value = value;
+		}
 
 		public static IEnumerable<IDataReader> ExecuteRows(this IDbCommand @this)
 		{

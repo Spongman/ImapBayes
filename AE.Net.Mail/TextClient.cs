@@ -1,4 +1,4 @@
-﻿//#define VERBOSE
+﻿#define VERBOSE
 
 using System;
 using System.Diagnostics;
@@ -10,6 +10,11 @@ namespace AE.Net.Mail
 {
 	public abstract class TextClient : IDisposable
 	{
+
+		static int __id = 0;
+
+		int _id = __id++;
+
 		protected TcpClient _connection;
 		protected Stream _streamInput;
 		protected Stream _streamOutput;
@@ -74,6 +79,9 @@ namespace AE.Net.Mail
 
 		public virtual void Connect(string hostname, int port, bool ssl, System.Net.Security.RemoteCertificateValidationCallback validateCertificate)
 		{
+			if (IsConnected)
+				throw new Exception("Already connected!");
+
 			try
 			{
 				Host = hostname;
@@ -175,9 +183,30 @@ namespace AE.Net.Mail
 			if (IsAuthenticated)
 				Logout();
 
-			Utilities.TryDispose(ref _streamInput);
-			Utilities.TryDispose(ref _streamOutput);
-			Utilities.TryDispose(ref _connection);
+			lock (_lockObject)
+			{
+				if (_connection != null)
+				{
+					if (_connection.Client != null && _connection.Client.Connected)
+					{
+						_connection.Client.Disconnect(false);
+						_connection.Client.Dispose();
+					}
+					_connection.Close();
+				}
+				Utilities.TryDispose(ref _connection);
+				_connection = null;
+
+				if (_streamInput != null)
+					_streamInput.Close();
+				Utilities.TryDispose(ref _streamInput);
+
+				if (_streamOutput != null)
+					_streamOutput.Close();
+				Utilities.TryDispose(ref _streamOutput);
+
+				this.IsConnected = false;
+			}
 		}
 
 		public virtual void Dispose()
@@ -203,7 +232,7 @@ namespace AE.Net.Mail
 				_streamOutput = null;
 				_connection = null;
 			}
-			GC.SuppressFinalize(this);
+//			GC.SuppressFinalize(this);
 		}
 	}
 }
